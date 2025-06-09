@@ -11,13 +11,13 @@ class TaskInitiator(BaseClient):
     """Client for initiating tasks and anchoring their metadata on‐chain."""
 
     def __init__(
-            self,
-            rpc_endpoint: str,
-            initiator_did: str,
-            data_anchoring_address: str,
-            private_key: Optional[str] = None,
-            ipfs_gateway: Optional[str] = None,
-            default_gas: int = 2_000_000,
+        self,
+        rpc_endpoint: str,
+        initiator_did: str,
+        data_anchoring_address: str,
+        private_key: Optional[str] = None,
+        ipfs_gateway: Optional[str] = None,
+        default_gas: int = 2_000_000,
     ) -> None:
         """
         Initialize a TaskInitiator instance.
