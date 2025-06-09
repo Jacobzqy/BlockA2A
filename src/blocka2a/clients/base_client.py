@@ -90,7 +90,7 @@ class BaseClient:
             raise TransactionError("Transaction reverted", receipt["transactionHash"].hex())
         return receipt["transactionHash"]
 
-    def _load_contract(self, getter: Callable[[Web3, str], Contract], address: str) -> Contract:
+    def _load_contract(self, getter: Callable[[Web3, Any], Contract], address: str) -> Contract:
         """
         Validate and checksum an address, then load a Web3.py Contract via the provided stub.
 

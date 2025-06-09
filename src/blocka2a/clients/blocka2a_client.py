@@ -1,0 +1,416 @@
+import hashlib
+import time
+import base58
+import json
+
+from py_ecc.bls.g2_primitives import pubkey_to_G1
+from web3 import Web3
+from typing import Optional, List, Any, Tuple
+from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PublicKey
+from cryptography.exceptions import InvalidSignature
+from py_ecc.bls import G2ProofOfPossession
+
+from src.blocka2a.clients.base_client import BaseClient
+from src.blocka2a.clients.errors import InvalidParameterError, IdentityError, ContractError, NetworkError, LedgerError
+from src.blocka2a.types import PublicKeyEntry, ServiceEntry, Capabilities, PolicyConstraints, Proof, DIDDocument, BLSPubkey, BLSSignature, BLSPrivateKey
+from src.blocka2a.contracts import access_control_contract, interaction_logic_contract, agent_governance_contract, data_anchoring_contract
+
+class BlockA2AClient(BaseClient):
+    """BlockA2A SDK client that handles DID operations, data anchoring, and task signatures."""
+
+    def __init__(
+        self,
+        rpc_endpoint: str,
+        acc_address: str,
+        ilc_address: str,
+        agc_address: str,
+        dac_address: str,
+        private_key: Optional[str] = None,
+        ipfs_gateway: Optional[str] = None,
+        default_gas: int = 2_000_000,
+    ) -> None:
+        """
+        Initialize a BlockA2AClient.
+
+        Args:
+            rpc_endpoint: URL of the Ethereum JSON-RPC endpoint.
+            acc_address: Address of the AccessControlContract.
+            ilc_address: Address of the InteractionLogicContract.
+            agc_address: Address of the AgentGovernanceContract.
+            dac_address: Address of the DataAnchoringContract.
+            private_key: Hex string of the EOA private key for signing transactions.
+                         If None, write operations are disabled.
+            ipfs_gateway: URL or multi-addr of the IPFS API endpoint; if None, off-chain ops disabled.
+            default_gas: Default gas limit for transactions (in Wei).
+
+        Raises:
+            InvalidParameterError: If any contract address is not a valid Ethereum address.
+        """
+        super().__init__(
+            rpc_endpoint=rpc_endpoint,
+            private_key=private_key,
+            ipfs_gateway=ipfs_gateway,
+            default_gas=default_gas,
+        )
+
+        # Load each contract via BaseClient._load_contract()
+        self._acc = self._load_contract(access_control_contract.get_contract, acc_address)
+        self._ilc = self._load_contract(interaction_logic_contract.get_contract, ilc_address)
+        self._agc = self._load_contract(agent_governance_contract.get_contract, agc_address)
+        self._dac = self._load_contract(data_anchoring_contract.get_contract, dac_address)
+
+    @classmethod
+    def _convert_bls_pubkeys(cls, public_keys: list[PublicKeyEntry]) -> list[list[int]]:
+        """
+        Convert a list of PublicKeyEntry (Bls12381G1Key2020) into
+        a list of uint256[4] arrays for on-chain registration.
+
+        Args:
+            public_keys: List of PublicKeyEntry with type "Bls12381G1Key2020".
+
+        Returns:
+            A list of [x_low, x_high, y_low, y_high] integers for each key.
+
+        Raises:
+            InvalidParameterError: If a decoded key is not 48 bytes.
+        """
+        mask = (1 << 256) - 1
+        bls_pubkeys: list[list[int]] = []
+        for public_key in public_keys:
+            raw_bytes = base58.b58decode(public_key.publicKeyMultibase)
+            if len(raw_bytes) != 48:
+                raise InvalidParameterError(
+                    f"BLS public key '{public_key.id}' length is {len(raw_bytes)}, expected 48 bytes."
+                )
+            bls_raw: BLSPubkey = BLSPubkey(raw_bytes)
+            x_fq, y_fq, _ = pubkey_to_G1(bls_raw)
+            x_int, y_int = int(x_fq.n), int(y_fq.n)
+
+            x_low = x_int & mask
+            x_high = x_int >> 256
+            y_low = y_int & mask
+            y_high = y_int >> 256
+
+            bls_pubkeys.append([x_low, y_low, x_high, y_high])
+
+        return bls_pubkeys
+
+    @classmethod
+    def _verify_proof(cls, document: DIDDocument, proof: Optional[Proof], public_keys: List[PublicKeyEntry]) -> None:
+        """
+        Verify the Ed25519 proof in a DIDDocument; skip if proof is None.
+
+        Args:
+            document: The DIDDocument to verify.
+            proof: Optional Proof object from the document.
+            public_keys: List of PublicKeyEntry in the document.
+
+        Raises:
+            InvalidParameterError: If proof type is unsupported or key format invalid.
+            IdentityError: If proof verification fails.
+        """
+        if proof is None:
+            return
+
+        if proof.type != "Ed25519Signature2020":
+            raise InvalidParameterError(f"Unsupported proof type: {proof.type}")
+
+        pk_entry = next((pk for pk in public_keys if pk.id == proof.verificationMethod), None)
+
+        if pk_entry is None:
+            raise IdentityError(f"verificationMethod '{proof.verificationMethod}' not found")
+        if pk_entry.type != "Ed25519VerificationKey2020":
+            raise IdentityError(f"PublicKeyEntry '{pk_entry.id}' is not Ed25519VerificationKey2020")
+
+        decoded = base58.b58decode(pk_entry.publicKeyMultibase)
+        if len(decoded) >= 34 and decoded[:2] == b"\xed\x01":
+            raw_pk = decoded[-32:]
+        elif len(decoded) == 32:
+            raw_pk = decoded
+        else:
+            raise InvalidParameterError(f"PublicKeyMultibase for '{pk_entry.id}' has invalid length {len(decoded)}")
+
+        try:
+            ed_pub = Ed25519PublicKey.from_public_bytes(raw_pk)
+        except Exception as e:
+            raise IdentityError(f"Failed to load public key bytes: {e}") from e
+
+        doc_dict = document.model_dump(exclude={"proof"})
+        message = json.dumps(doc_dict, separators=(",", ":"), sort_keys=True).encode()
+
+        try:
+            sig_bytes = base58.b58decode(proof.proofValue)
+        except Exception as e:
+            raise InvalidParameterError(f"Invalid base58 signature: {e}") from e
+
+        try:
+            ed_pub.verify(sig_bytes, message)
+        except InvalidSignature:
+            raise IdentityError("Signature verification failed")
+        except Exception as e:
+            raise IdentityError(f"Unexpected error during signature verification: {e}") from e
+
+    def anchor_data(self, payload: Any, expiry: int) -> Tuple[bytes, str]:
+        """
+        Anchor arbitrary payload on-chain with a user-specified expiry timestamp.
+
+        Args:
+            payload: JSON-serializable data to anchor.
+            expiry: Unix timestamp (seconds) when the anchor expires.
+
+        Returns:
+            A tuple of (transaction_hash, cid).
+
+        Raises:
+            InvalidParameterError: If payload serialization fails.
+            NetworkError: If IPFS client is uninitialized or upload fails.
+            ContractError: If the on-chain anchor transaction fails.
+        """
+        try:
+            payload_json = json.dumps(payload, separators=(",", ":"), sorted_keys=True)
+        except Exception as e:
+            raise LedgerError(f"Payload not JSON-serializable: {e}") from e
+        data_bytes = payload_json.encode()
+        data_hash = hashlib.sha256(data_bytes).digest()
+
+        if not self._ipfs:
+            raise NetworkError("IPFS client not initialized")
+        try:
+            cid = self._ipfs.add_json(payload_json)
+        except Exception as e:
+            raise NetworkError(f"IPFS upload failed: {e}") from e
+
+        try:
+            tx_hash = self._send_tx(
+                self._dac.functions.anchor,
+                data_hash,
+                cid,
+                expiry,
+                "anchored"
+            )
+        except Exception as e:
+            raise ContractError(f"anchor tx failed: {e}") from e
+
+        return tx_hash, cid
+
+    def verify_data(self, payload: Any) -> bool:
+        """
+        Verify that the given payload was anchored, is not expired, and integrity intact.
+
+        Args:
+            payload: The original JSON-serializable data.
+
+        Returns:
+            True if the anchor exists, has not expired, and the hash matches.
+
+        Raises:
+            LedgerError: If anchor is expired or status unexpected.
+            ContractError: If on-chain retrieval fails.
+        """
+        payload_json = json.dumps(payload, separators=(",", ":"), sorted_keys=True)
+        data_hash = hashlib.sha256(payload_json.encode()).digest()
+
+        try:
+            record: tuple[bytes, str, int, str] = self._dac.functions.get(data_hash)
+        except Exception as e:
+            raise ContractError(f"get call failed: {e}") from e
+
+        onchain_hash, cid, expiry, status = record
+        now = int(time.time())
+
+        if now > expiry:
+            raise LedgerError("Anchor has expired")
+        if status != "anchored":
+            raise LedgerError(f"Unexpected status: {status}")
+        if onchain_hash != data_hash:
+            raise LedgerError("Integrity check failed: on-chain hash mismatch")
+
+        return True
+
+    @classmethod
+    def generate_did(cls, public_key_multibase: str) -> str:
+        """
+        Generate a DID from an Ed25519 public key.
+
+        The DID is "did:blocka2a:" + the first 5 hex digits of SHA-256(pubkey_bytes).
+
+        Args:
+            public_key_multibase: Base58-encoded public key with multicodec prefix.
+
+        Returns:
+            A new DID string, e.g. did:blocka2a:1a2b3.
+        """
+        # 1. Decode Base58 → raw key bytes
+        key_bytes = base58.b58decode(public_key_multibase)
+        # 2. Compute hex digest (64 hex chars)
+        full_hex = hashlib.sha256(key_bytes).hexdigest()
+        # 3. Take the first 5 hex characters
+        prefix5 = full_hex[:5]
+        return f"did:blocka2a:{prefix5}"
+
+    def register_did(
+        self,
+        *,
+        did: str,
+        public_keys: List[PublicKeyEntry],
+        services: List[ServiceEntry],
+        capabilities: Capabilities,
+        policy_constraints: PolicyConstraints,
+        proof: Optional[Proof] = None,
+        controllers: List[str],
+        required_sigs_for_update: int
+    ) -> Tuple[bytes, str]:
+        """
+        Register a new DIDDocument on-chain and upload it to IPFS.
+
+        Args:
+            did: The DID string to register.
+            public_keys: List of PublicKeyEntry, including Ed25519 and BLS keys.
+            services: List of ServiceEntry for the DID document.
+            capabilities: Capabilities object.
+            policy_constraints: PolicyConstraints object.
+            proof: Optional Proof, signed by one of the Ed25519 keys.
+            controllers: List of EVM addresses controlling this DID.
+            required_sigs_for_update: Minimum number of BLS signatures required for updates.
+
+        Returns:
+            A tuple of (transaction_hash, cid).
+
+        Raises:
+            InvalidParameterError: On bad input.
+            IdentityError: If proof verification fails.
+            ContractError: If on-chain call fails.
+            NetworkError: If IPFS upload fails.
+        """
+        if not controllers:
+            raise InvalidParameterError("controllers list cannot be empty")
+        for controller in controllers:
+            if not Web3.is_address(controller):
+                raise InvalidParameterError(f"Invalid Ethereum address: {controller}")
+
+        if required_sigs_for_update < 1 or required_sigs_for_update > len(controllers):
+            raise InvalidParameterError("required_sigs_for_update must be between 1 and number of controllers")
+
+        if not public_keys:
+            raise InvalidParameterError("public_keys list cannot be empty")
+
+        # Build DIDDocument and verify proof if present
+        document = DIDDocument(
+            id = did,
+            publicKey = public_keys,
+            service = services,
+            capabilities = capabilities,
+            policy_constraints = policy_constraints,
+            proof = proof
+        )
+
+        self._verify_proof(document, proof, public_keys)
+
+        # Compute SHA-256 of the canonical JSON
+        doc_byes = document.to_json().encode()
+        doc_hash = hashlib.sha256(doc_byes).digest()
+
+        # Extract BLS G1 keys and convert
+        bls_keys = [pk for pk in public_keys if pk.type == "Bls12381G1Key2020"]
+        bls_pubkeys = self._convert_bls_pubkeys(bls_keys)
+
+        # Upload full document to IPFS
+        cid = self._ipfs.add_json(document.to_json())
+
+        # On-chain register
+        tx_hash = self._send_tx(
+            self._agc.functions.register,
+            did,
+            doc_hash,
+            controllers,
+            bls_pubkeys,
+            required_sigs_for_update,
+            cid,
+        )
+
+        return tx_hash, cid
+
+    def verify(self, did: str, proof: Proof) -> bool:
+        """
+        Verify a DIDDocument by fetching both documentHash and CID from the
+        AgentGovernanceContract, then checking integrity and proof.
+
+        Workflow:
+          1. Call contract.resolve(did) → (ha, cid).
+          2. Fetch raw bytes from IPFS using cid.
+          3. Compute canonical JSON SHA-256 digest and compare to ha.
+          4. Parse DIDDocument and verify the Ed25519 proof.
+
+        Args:
+            did: The DID string to verify.
+            proof: The Proof object supplied by the user.
+
+        Returns:
+            A tuple (ha, True) on success, where ha is the on-chain documentHash.
+
+        Raises:
+            ContractError: If on-chain resolve call fails.
+            NetworkError: If IPFS fetch fails.
+            IdentityError: If integrity check or proof verification fails.
+        """
+        # 1. Resolve DID → (ha, cid)
+        try:
+            ha, cid = self._agc.functions.resolve(did).call()
+        except Exception as e:
+            raise ContractError(f"AGC.resolve('{did}') failed: {e}") from e
+
+        # 2. Fetch document from IPFS
+        try:
+            raw_bytes = self._ipfs.get(cid)
+        except Exception as e:
+            raise NetworkError(f"IPFS get failed for CID {cid}: {e}") from e
+
+        # 3. Integrity check: compute SHA-256 over canonical JSON
+        try:
+            doc_json = raw_bytes.decode()
+            doc_obj = json.loads(doc_json)
+            canonical = json.dumps(doc_obj, separators=(",", ":"), sort_keys=True).encode()
+            calc_ha = hashlib.sha256(canonical).digest()
+            if calc_ha != ha:
+                raise IdentityError("Integrity check failed: hash mismatch")
+        except IdentityError:
+            raise
+        except Exception as e:
+            raise IdentityError(f"Integrity check error: {e}") from e
+
+        # 4. Verify proof
+        try:
+            document = DIDDocument.model_validate(doc_obj)
+        except Exception as e:
+            raise IdentityError(f"Failed to parse DIDDocument: {e}") from e
+
+        try:
+            self._verify_proof(document, proof, document.publicKey)
+        except IdentityError:
+            raise
+        except Exception as e:
+            raise IdentityError(f"Proof verification error: {e}") from e
+
+        return True
+
+    @classmethod
+    def sign_task(cls, bls_sk: BLSPrivateKey, task_hash: bytes, milestone: str) -> BLSSignature:
+        """
+        Sign a task identification (hash + milestone) with a BLS private key.
+
+        Args:
+            bls_sk: BLS private key integer.
+            task_hash: 32-byte SHA-256 hash of task metadata.
+            milestone: A string identifier of the milestone.
+
+        Returns:
+            A BLSSignature for the message.
+        """
+        if not isinstance(bls_sk, int):
+            raise InvalidParameterError("bls_sk must be BLSPrivateKey (int)")
+
+        key = task_hash.hex() + "|" + milestone
+        msg = key.encode()
+        sig = G2ProofOfPossession.Sign(bls_sk, msg)
+
+        return sig
