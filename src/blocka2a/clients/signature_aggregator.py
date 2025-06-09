@@ -4,7 +4,8 @@ from src.blocka2a.clients.errors import InvalidParameterError, ContractError
 from src.blocka2a.types import BLSSignature
 from src.blocka2a.clients.base_client import BaseClient
 from py_ecc.bls import G2ProofOfPossession
-from src.blocka2a.contracts import provenance_contract
+from py_ecc.bls.g2_primitives import signature_to_G2
+from src.blocka2a.contracts import data_anchoring_contract
 
 class SignatureAggregator(BaseClient):
     """Handles BLS signature aggregation and on-chain submission for task validation."""
@@ -12,7 +13,7 @@ class SignatureAggregator(BaseClient):
     def __init__(
         self,
         rpc_endpoint: str,
-        provenance_address: str,
+        data_anchoring_address: str,
         private_key: Optional[str] = None,
         ipfs_gateway: Optional[str] = None,
         default_gas: int = 2_000_000
@@ -22,14 +23,14 @@ class SignatureAggregator(BaseClient):
 
         Args:
             rpc_endpoint: Ethereum JSON-RPC endpoint URL.
-            provenance_address: Address of the deployed ProvenanceContract.
+            data_anchoring_address: Address of the deployed ProvenanceContract.
             private_key: Hex string of an EOA private key for sending transactions.
                          If None, only read-only calls are allowed.
             ipfs_gateway: URL or multi-addr for the IPFS API; if None, off-chain ops disabled.
             default_gas: Default gas limit for transactions.
 
         Raises:
-            InvalidParameterError: If provenance_address is not a valid Ethereum address.
+            InvalidParameterError: If data_anchoring_address is not a valid Ethereum address.
         """
         # Initialize Web3, account and IPFS via BaseClient
         super().__init__(
@@ -39,7 +40,7 @@ class SignatureAggregator(BaseClient):
             default_gas=default_gas,
         )
 
-        self._prov = self._load_contract(provenance_contract.get_contract, provenance_address)
+        self._dac = self._load_contract(data_anchoring_contract.get_contract, data_anchoring_address)
 
     @staticmethod
     def aggregate(sigs: List[BLSSignature]) -> BLSSignature:
@@ -66,37 +67,74 @@ class SignatureAggregator(BaseClient):
 
         return agg_sig
 
-    def submit_task_validation(self, task_hash: bytes, aggregate_signature: BLSSignature, milestone: str, dids: List[str]) -> bytes:
+    @staticmethod
+    def bls_signature_to_uint256x4(sig: BLSSignature) -> List[int]:
         """
-        Submits a BLS aggregate signature for a task milestone to the ProvenanceContract.
+        Convert a 96-byte BLS signature into a Solidity uint256[4] representing
+        the G2 point coordinates.
 
         Args:
-            task_hash: 32-byte SHA256 hash of the task metadata.
-            aggregate_signature: The BLSSignature returned by aggregate().
-            milestone: Identifier for the milestone being validated.
-            dids: List of DIDs whose keys participated in the signature.
+            sig: BLSSignature bytes (96 bytes).
+
+        Returns:
+            A list [x0, x1, y0, y1], where each is an uint256 limb of the FQ2 coordinates.
+
+        Raises:
+            InvalidParameterError: If signature decoding fails.
+        """
+        try:
+            # Decode signature bytes into a G2 point: (FQ2 x, FQ2 y, FQ2 z)
+            x_fq2, y_fq2, _ = signature_to_G2(BLSSignature(sig))
+        except Exception as e:
+            raise InvalidParameterError(f"Invalid BLS signature format: {e}") from e
+
+        # Each FQ2 element has two FQ limbs: c0 and c1
+        x0 = int(x_fq2.coeffs[0].n)
+        x1 = int(x_fq2.coeffs[1].n)
+        y0 = int(y_fq2.coeffs[0].n)
+        y1 = int(y_fq2.coeffs[1].n)
+        return [x0, x1, y0, y1]
+
+    def submit_task_validation(
+        self,
+        agg_sig: BLSSignature,
+        data_hash: bytes,
+        milestone: str,
+        dids: List[str],
+    ) -> bytes:
+        """
+        Verify a BLS aggregate signature locally, then submit the
+        uint256[4] representation to the DataAnchoringContract for update.
+
+        Args:
+            agg_sig: BLSSignature returned by `aggregate()`.
+            data_hash: 32-byte SHA-256 hash of the task metadata.
+            milestone: Milestone identifier, e.g. "milestone-X".
+            dids: List of DIDs whose keys participated.
 
         Returns:
             The transaction hash as HexBytes.
 
         Raises:
             InvalidParameterError: If inputs are malformed.
-            ContractError: If the on-chain call fails or reverts.
+            ContractError: If the on-chain update call fails.
         """
-        if not isinstance(aggregate_signature, bytes):
+        if not agg_sig or not isinstance(agg_sig, (bytes, bytearray)):
             raise InvalidParameterError("aggregate_signature must be BLSSignature")
-        if not dids:
-            raise InvalidParameterError("dids list cannot be empty")
 
+        # Convert to uint256[4] G2 coordinates
+        agg_sig_point = self.bls_signature_to_uint256x4(agg_sig)
+
+        # Submit on-chain: update(uint256[4], bytes32, string, string[])
         try:
             tx_hash = self._send_tx(
-                self._prov.functions.updateTask,
-                aggregate_signature,
-                task_hash,
+                self._dac.functions.update,
+                agg_sig_point,
+                data_hash,
                 milestone,
-                dids
+                dids,
             )
         except Exception as e:
-            raise ContractError(f"updateTask tx failed: {e}") from e
+            raise ContractError(f"DAC.update call failed: {e}") from e
 
         return tx_hash

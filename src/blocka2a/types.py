@@ -2,7 +2,8 @@ from __future__ import annotations
 
 from datetime import datetime
 from typing import List
-from pydantic import BaseModel, Field
+from pydantic import BaseModel
+from eth_typing import BLSPubkey, BLSPrivateKey, BLSSignature
 import json
 
 class PublicKeyEntry(BaseModel):
@@ -34,7 +35,7 @@ class DIDDocument(BaseModel):
     publicKey: List[PublicKeyEntry]
     service: List[ServiceEntry]
     capabilities: Capabilities
-    policy_constraints: PolicyConstraints = Field(alias="policy-constraints")
+    policy_constraints: PolicyConstraints
     proof: Proof | None = None
 
     def to_json(self, *, indent: int | None = None) -> str:
@@ -48,3 +49,9 @@ class DIDDocument(BaseModel):
     @classmethod
     def from_json(cls, data: str) -> "DIDDocument":
         return cls.model_validate_json(data)
+
+class TaskMetadata(BaseModel):
+    initiator: str
+    participants: List[str]
+    description: str
+    deadline: int
