@@ -3,4 +3,11 @@ name = "blocka2a"
 version = "0.1.0"
 description = "Add your description here"
 requires-python = ">=3.12"
-dependencies = []
+dependencies = [
+    "base58>=2.1.1",
+    "cryptography>=45.0.3",
+    "ipfshttpclient>=0.7.0",
+    "py-ecc>=8.0.0",
+    "pydantic>=2.11.5",
+    "web3>=7.12.0",
+]

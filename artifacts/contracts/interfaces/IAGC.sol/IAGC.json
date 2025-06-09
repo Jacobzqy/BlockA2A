@@ -1,0 +1,189 @@
+{
+  "_format": "hh-sol-artifact-1",
+  "contractName": "IAGC",
+  "sourceName": "contracts/interfaces/IAGC.sol",
+  "abi": [
+    {
+      "anonymous": false,
+      "inputs": [
+        {
+          "indexed": true,
+          "internalType": "string",
+          "name": "DID",
+          "type": "string"
+        },
+        {
+          "indexed": true,
+          "internalType": "bytes32",
+          "name": "documentHash",
+          "type": "bytes32"
+        },
+        {
+          "indexed": false,
+          "internalType": "address[]",
+          "name": "controllers",
+          "type": "address[]"
+        }
+      ],
+      "name": "DIDCreated",
+      "type": "event"
+    },
+    {
+      "anonymous": false,
+      "inputs": [
+        {
+          "indexed": true,
+          "internalType": "string",
+          "name": "DID",
+          "type": "string"
+        },
+        {
+          "indexed": true,
+          "internalType": "bytes32",
+          "name": "newDocumentHash",
+          "type": "bytes32"
+        }
+      ],
+      "name": "DIDDocumentUpdated",
+      "type": "event"
+    },
+    {
+      "anonymous": false,
+      "inputs": [
+        {
+          "indexed": true,
+          "internalType": "string",
+          "name": "DID",
+          "type": "string"
+        }
+      ],
+      "name": "DIDRevoked",
+      "type": "event"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "string",
+          "name": "DID",
+          "type": "string"
+        },
+        {
+          "internalType": "bytes32",
+          "name": "documentHash",
+          "type": "bytes32"
+        },
+        {
+          "internalType": "address[]",
+          "name": "controllers",
+          "type": "address[]"
+        },
+        {
+          "internalType": "uint256[4][]",
+          "name": "blsPubKeys",
+          "type": "uint256[4][]"
+        },
+        {
+          "internalType": "uint8",
+          "name": "_requiredSigsForCapUpdate",
+          "type": "uint8"
+        }
+      ],
+      "name": "register",
+      "outputs": [
+        {
+          "internalType": "bool",
+          "name": "success",
+          "type": "bool"
+        }
+      ],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "string",
+          "name": "DID",
+          "type": "string"
+        }
+      ],
+      "name": "resolve",
+      "outputs": [
+        {
+          "internalType": "bytes32",
+          "name": "documentHash",
+          "type": "bytes32"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "string",
+          "name": "DID",
+          "type": "string"
+        },
+        {
+          "internalType": "uint256[2]",
+          "name": "aggSig",
+          "type": "uint256[2]"
+        },
+        {
+          "internalType": "uint256",
+          "name": "controllerMask",
+          "type": "uint256"
+        }
+      ],
+      "name": "revoke",
+      "outputs": [
+        {
+          "internalType": "bool",
+          "name": "success",
+          "type": "bool"
+        }
+      ],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "string",
+          "name": "DID",
+          "type": "string"
+        },
+        {
+          "internalType": "bytes32",
+          "name": "newDocumentHash",
+          "type": "bytes32"
+        },
+        {
+          "internalType": "uint256[2]",
+          "name": "aggSig",
+          "type": "uint256[2]"
+        },
+        {
+          "internalType": "uint256",
+          "name": "controllerMask",
+          "type": "uint256"
+        }
+      ],
+      "name": "update",
+      "outputs": [
+        {
+          "internalType": "bool",
+          "name": "success",
+          "type": "bool"
+        }
+      ],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    }
+  ],
+  "bytecode": "0x",
+  "deployedBytecode": "0x",
+  "linkReferences": {},
+  "deployedLinkReferences": {}
+}
