@@ -1,5 +1,5 @@
 from typing import List, Optional
-
+import time
 from src.blocka2a.clients.errors import InvalidParameterError, ContractError
 from src.blocka2a.types import BLSSignature
 from src.blocka2a.clients.base_client import BaseClient
@@ -61,7 +61,10 @@ class SignatureAggregator(BaseClient):
             raise InvalidParameterError("No signatures provided for aggregation")
 
         try:
+            start = time.time()      # EVALUATION: Multi-signature generation
             agg_sig: BLSSignature = G2ProofOfPossession.Aggregate(sigs)
+            end = time.time()
+            print(f"multi-signature generation {end - start:.2f} s")
         except Exception as e:
             raise InvalidParameterError(f"BLS aggregation validation failed: {e}") from e
 
