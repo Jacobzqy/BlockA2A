@@ -78,7 +78,7 @@ class BaseClient:
 
         # Send the raw transaction and wait for receipt
         try:
-            tx_hash = self._w3.eth.send_raw_transaction(signed.rawTransaction)
+            tx_hash = self._w3.eth.send_raw_transaction(signed[0])
             receipt: TxReceipt = self._w3.eth.wait_for_transaction_receipt(tx_hash, timeout=120)
         except TimeoutError as e:
             raise TimeoutError("Transaction receipt wait timed out") from e

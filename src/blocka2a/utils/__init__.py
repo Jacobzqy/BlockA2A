@@ -1,15 +1,31 @@
 """
-BlockA2A Utility Subpackage.
+BlockA2A Utility Sub-package
+============================
 
-This package provides helper modules for the BlockA2A SDK, including
-IPFS integration and other common utilities.
+Common helper modules shipped with the BlockA2A SDK.
 
-Modules:
-    ipfs:   IPFSClient for interacting with a local or remote IPFS daemon.
+Modules
+-------
+ipfs
+    ``IPFSClient`` – thin wrapper around a local/remote IPFS daemon.
+crypto
+    Ed25519 / BLS-12-381 key helpers (see ``blocka2a.utils.crypto``).
 """
-
 from .ipfs import IPFSClient
+from .crypto import (
+    gen_ed25519,
+    gen_bls12_381_g2,
+    bls_g2_pubkey_to_coords,
+    generate_key_sets,
+)
+
 
 __all__ = [
+    # ipfs
     "IPFSClient",
+    # crypto helpers
+    "gen_ed25519",
+    "gen_bls12_381_g2",
+    "bls_g2_pubkey_to_coords",
+    "generate_key_sets",
 ]

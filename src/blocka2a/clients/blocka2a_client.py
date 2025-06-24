@@ -228,25 +228,33 @@ class BlockA2AClient(BaseClient):
         return True
 
     @classmethod
-    def generate_did(cls, public_key_multibase: str) -> str:
+    def generate_did(cls, public_keys_multibase: List[str]) -> str:
         """
-        Generate a DID from an Ed25519 public key.
-
-        The DID is "did:blocka2a:" + the first 5 hex digits of SHA-256(pubkey_bytes).
+        Generate a DID by lexicographically sorting the Base58 keys,
+        then joining them with '|' and hashing the result.
+        DID = "did:blocka2a:" + first10chars_of_SHA256(sorted_keys_joined).hexdigest()
 
         Args:
-            public_key_multibase: Base58-encoded public key with multicodec prefix.
+            public_keys_multibase: List of Base58-encoded public keys.
 
         Returns:
-            A new DID string, e.g. did:blocka2a:1a2b3.
+            A DID string with 10-char fingerprint.
         """
-        # 1. Decode Base58 → raw key bytes
-        key_bytes = base58.b58decode(public_key_multibase)
-        # 2. Compute hex digest (64 hex chars)
-        full_hex = hashlib.sha256(key_bytes).hexdigest()
-        # 3. Take the first 5 hex characters
-        prefix5 = full_hex[:5]
-        return f"did:blocka2a:{prefix5}"
+        if not public_keys_multibase:
+            raise ValueError("public_keys_multibase list cannot be empty")
+
+        # Sort the Base58-encoded public keys lexicographically
+        sorted_keys = sorted(public_keys_multibase)
+
+        # Concatenate the sorted keys with '|' as delimiter
+        joined = "|".join(sorted_keys)
+
+        # Compute the SHA-256 hash and get the full & short hex digest
+        full_digest = hashlib.sha256(joined.encode("utf-8")).hexdigest()
+        short_digest = full_digest[:10]
+
+        # Prefix with the did:blocka2a scheme
+        return f"did:blocka2a:{short_digest}"
 
     def register_did(
         self,
@@ -257,7 +265,6 @@ class BlockA2AClient(BaseClient):
         capabilities: Capabilities,
         policy_constraints: PolicyConstraints,
         proof: Optional[Proof] = None,
-        controllers: List[str],
         required_sigs_for_update: int
     ) -> Tuple[bytes, str]:
         """
@@ -270,7 +277,6 @@ class BlockA2AClient(BaseClient):
             capabilities: Capabilities object.
             policy_constraints: PolicyConstraints object.
             proof: Optional Proof, signed by one of the Ed25519 keys.
-            controllers: List of EVM addresses controlling this DID.
             required_sigs_for_update: Minimum number of BLS signatures required for updates.
 
         Returns:
@@ -282,14 +288,9 @@ class BlockA2AClient(BaseClient):
             ContractError: If on-chain call fails.
             NetworkError: If IPFS upload fails.
         """
-        if not controllers:
-            raise InvalidParameterError("controllers list cannot be empty")
-        for controller in controllers:
-            if not Web3.is_address(controller):
-                raise InvalidParameterError(f"Invalid Ethereum address: {controller}")
 
-        if required_sigs_for_update < 1 or required_sigs_for_update > len(controllers):
-            raise InvalidParameterError("required_sigs_for_update must be between 1 and number of controllers")
+        if required_sigs_for_update < 1:
+            raise InvalidParameterError("required_sigs_for_update must be at least 1")
 
         if not public_keys:
             raise InvalidParameterError("public_keys list cannot be empty")
@@ -310,10 +311,6 @@ class BlockA2AClient(BaseClient):
         doc_byes = document.to_json().encode()
         doc_hash = hashlib.sha256(doc_byes).digest()
 
-        # Extract BLS G1 keys and convert
-        bls_keys = [pk for pk in public_keys if pk.type == "Bls12381G1Key2020"]
-        bls_pubkeys = self._convert_bls_pubkeys(bls_keys)
-
         # Upload full document to IPFS
         cid = self._ipfs.add_json(document.to_json())
 
@@ -322,10 +319,8 @@ class BlockA2AClient(BaseClient):
             self._agc.functions.register,
             did,
             doc_hash,
-            controllers,
-            bls_pubkeys,
-            required_sigs_for_update,
             cid,
+            required_sigs_for_update,
         )
 
         return tx_hash, cid

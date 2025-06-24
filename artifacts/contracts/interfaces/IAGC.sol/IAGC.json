@@ -17,12 +17,6 @@
           "internalType": "bytes32",
           "name": "documentHash",
           "type": "bytes32"
-        },
-        {
-          "indexed": false,
-          "internalType": "address[]",
-          "name": "controllers",
-          "type": "address[]"
         }
       ],
       "name": "DIDCreated",
@@ -73,14 +67,9 @@
           "type": "bytes32"
         },
         {
-          "internalType": "address[]",
-          "name": "controllers",
-          "type": "address[]"
-        },
-        {
-          "internalType": "uint256[4][]",
-          "name": "blsPubKeys",
-          "type": "uint256[4][]"
+          "internalType": "string",
+          "name": "cid",
+          "type": "string"
         },
         {
           "internalType": "uint8",
@@ -113,6 +102,11 @@
           "internalType": "bytes32",
           "name": "documentHash",
           "type": "bytes32"
+        },
+        {
+          "internalType": "string",
+          "name": "cid",
+          "type": "string"
         }
       ],
       "stateMutability": "view",
@@ -131,9 +125,9 @@
           "type": "uint256[2]"
         },
         {
-          "internalType": "uint256",
-          "name": "controllerMask",
-          "type": "uint256"
+          "internalType": "uint8",
+          "name": "pksMask",
+          "type": "uint8"
         }
       ],
       "name": "revoke",
@@ -165,9 +159,9 @@
           "type": "uint256[2]"
         },
         {
-          "internalType": "uint256",
-          "name": "controllerMask",
-          "type": "uint256"
+          "internalType": "uint8",
+          "name": "pksMask",
+          "type": "uint8"
         }
       ],
       "name": "update",
