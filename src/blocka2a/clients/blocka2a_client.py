@@ -312,9 +312,14 @@ class BlockA2AClient(BaseClient):
         doc_hash = hashlib.sha256(doc_byes).digest()
 
         # Upload full document to IPFS
+        start = time.time()       # EVALUATION: DID Registration off-chain DID document storage
         cid = self._ipfs.add_json(document.to_json())
+        end = time.time()
+        print(f"off-chain DID document storage {(end - start):.6f} s")
+
 
         # On-chain register
+        start = time.time()  # EVALUATION: DID Registration on-chain hash anchoring
         tx_hash = self._send_tx(
             self._agc.functions.register,
             did,
@@ -322,6 +327,8 @@ class BlockA2AClient(BaseClient):
             cid,
             required_sigs_for_update,
         )
+        end = time.time()
+        print(f"on-chain hash anchoring {(end - start):.6f} s")
 
         return tx_hash, cid
 
@@ -356,7 +363,10 @@ class BlockA2AClient(BaseClient):
 
         # 2. Fetch document from IPFS
         try:
+            start = time.time()  # EVALUATION: DID Document Retrieval
             raw_bytes = self._ipfs.get(cid)
+            end = time.time()
+            print(f"DID Document Retrieval {(end - start):.6f} s")
         except Exception as e:
             raise NetworkError(f"IPFS get failed for CID {cid}: {e}") from e
 
@@ -404,8 +414,10 @@ class BlockA2AClient(BaseClient):
         if not isinstance(bls_sk, int):
             raise InvalidParameterError("bls_sk must be BLSPrivateKey (int)")
 
+        start = time.time()  # EVALUATION: signature generation
         key = task_hash.hex() + "|" + milestone
         msg = key.encode()
         sig = G2ProofOfPossession.Sign(bls_sk, msg)
-
+        end = time.time()
+        print(f"signature generation {(end - start):.6f} s")
         return sig

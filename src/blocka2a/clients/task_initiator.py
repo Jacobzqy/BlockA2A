@@ -1,7 +1,7 @@
 import hashlib
 import json
 from typing import List, Tuple, Optional
-
+import time
 from src.blocka2a.clients.base_client import BaseClient
 from src.blocka2a.clients.errors import InvalidParameterError, NetworkError, ContractError
 from src.blocka2a.contracts import data_anchoring_contract
@@ -72,12 +72,14 @@ class TaskInitiator(BaseClient):
             ContractError: If the on-chain call fails or reverts.
         """
         # 1. Build metadata
+        task_init_start = time.time()
         meta = TaskMetadata(
             initiator = self._initiator,
             participants = participants,
             description = description,
             deadline = deadline,
         )
+        
 
         # 2. Serialize and hash
         try:
@@ -92,12 +94,16 @@ class TaskInitiator(BaseClient):
         if not self._ipfs:
             raise NetworkError("IPFS client not initialized")
         try:
+            start = time.time()     # EVALUATION: task off-chain data anchoring
             cid = self._ipfs.add_json(json_str)
+            end = time.time()
+            print(f"task off-chain data anchoring {end - start:.2f} s")
         except Exception as e:
             raise NetworkError(f"IPFS upload failed: {e}") from e
 
         # 4. Anchor on-chain
         try:
+            start = time.time()  # EVALUATION: task on-chain anchoring
             tx_hash = self._send_tx(
                 self._dac.functions.anchor,
                 data_hash,
@@ -105,7 +111,11 @@ class TaskInitiator(BaseClient):
                 deadline,
                 "initiated",
             )
+            end = time.time()
+            print(f"task on-chain anchoring {end - start:.2f} s")
         except Exception as e:
             raise ContractError(f"anchor transaction failed: {e}") from e
 
+        task_init_end = time.time()
+        print(f"Task initiated in {task_init_end - task_init_start:.2f} s")
         return cid, tx_hash
