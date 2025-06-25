@@ -1,0 +1,47 @@
+site_name: BlockA2A Documentation
+site_description: "Layered DID, Data Anchoring and State Transition Protocol"
+site_author: BlockA2A Team
+
+theme:
+  name: material
+  language: zh
+  palette:
+    primary: indigo
+    accent: indigo
+  font:
+    text: Roboto
+    code: Roboto Mono
+  features:
+    - navigation.instant
+    - navigation.tabs
+    - search.highlight
+    - content.code.annotate
+
+# 文档目录导航：去掉 .md 后缀，用目录形式
+nav:
+  - 首页: index.md
+  - 快速开始: getting-started.md
+  - 架构总览: architecture.md
+  - 概念:
+    - DID 规范: concepts/did.md
+    - 数据锚定: concepts/data-anchoring.md
+  - 指南:
+    - 注册 DID: guides/register-did.md
+  - API 参考:
+    - Python SDK: reference/sdk.md
+    - 智能合约: reference/contracts.md
+
+plugins:
+  - search
+  - mkdocstrings:
+      handlers:
+        python:
+          setup_commands:
+            - pip install -e .
+  - macros
+
+markdown_extensions:
+  - admonition
+  - codehilite
+  - toc:
+      permalink: true

@@ -5,7 +5,7 @@ sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
 from src.blocka2a.clients.blocka2a_client import BlockA2AClient
 from src.blocka2a.utils import crypto
-from src.blocka2a.types import PublicKeyEntry, ServiceEntry, Capabilities, PolicyConstraints
+from src.blocka2a.types import PublicKeyEntry, ServiceEntry, Capabilities, PolicyConstraints, DIDDocument
 
 
 def main():
@@ -91,25 +91,57 @@ def main():
     ]
 
     # b. 创建服务条目 (ServiceEntry)
-    services_for_doc = []
+    services_for_doc = [
+        ServiceEntry(
+            id=f"{did}#resource-1",
+            type="AgentCommunicationEndpoint",
+            serviceEndpoint=f"https://agent-a.example.com/api"
+        ),
+        ServiceEntry(
+            id=f"{did}#resource-2",
+            type="DocumentEndpoint",
+            serviceEndpoint=f"https://agent-b.example.com/api"
+        )
+    ]
 
     # c. 填充 Capabilities
     capabilities_for_doc = Capabilities(
         supportedModels=["gpt-4", "llama3"],
-        maxComputeTime="60s",
-        permissions=["read", "execute_task"]
+        maxComputeTime="5s",
+        permissions=["read", "write"]
     )
 
     # d. 填充 PolicyConstraints
     policy_constraints_for_doc = PolicyConstraints(
-        allowed_interaction_hours="00:00-23:59",  # 允许交互的时间段
-        max_data_size="10MB"  # 最大数据大小，例如 10MB
+        allowed_interaction_hours="09:00-18:00 UTC",
+        max_data_size="10MB"
     )
 
     # e. 设置签名要求
     required_sigs = 1
 
     print("✅ 所有参数准备就绪。")
+
+    # ==========================================================================
+    # 3.5. 预览将要注册的 DID Document (已更新)
+    # ==========================================================================
+    print("\n🚀 步骤 3.5: 预览将要注册的 DID Document...")
+
+    # 将所有组件组装成一个 DIDDocument 对象
+    # 注意：现在重新包含了 "capabilities" 字段
+    document_to_register = DIDDocument(
+        id=did,
+        publicKey=public_keys_for_doc,
+        service=services_for_doc,
+        capabilities=capabilities_for_doc,
+        policy_constraints=policy_constraints_for_doc,
+        proof=None
+    )
+
+    # 以美观的 JSON 格式打印文档
+    print("-------------------- DID Document (Preview) --------------------")
+    print(document_to_register.to_json(indent=2))
+    print("----------------------------------------------------------------")
 
     # ==========================================================================
     # 4. 执行注册

@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from datetime import datetime
-from typing import List
+from typing import List, Dict
 from pydantic import BaseModel
 from eth_typing import BLSPubkey, BLSPrivateKey, BLSSignature
 import json
@@ -164,3 +164,14 @@ class TaskMetadata(BaseModel):
     participants: List[str]
     description: str
     deadline: int
+
+class AccessToken(BaseModel):
+    agentDID: str
+    actionIdentifier: str
+    resourceIdentifier: str
+    expiry: int
+
+class Policy(BaseModel):
+    policy_type: str
+    policy_param: List[Dict[str, str]]
+

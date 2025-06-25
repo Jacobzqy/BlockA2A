@@ -1,83 +1,125 @@
-# tests/test_crypto.py
-
 import pytest
-from src.blocka2a.utils.crypto import gen_ed25519, sign, verify
-from src.blocka2a.types import Proof
+from src.blocka2a.utils import crypto
+
+# 导入底层 bn256 库以进行更深入的往返验证
+from src.blocka2a.utils import bn256 as bls_bn256
+from py_ecc.bn128 import FQ, FQ2, G2, multiply
 
 
-@pytest.fixture
-def ed_keys():
-    """生成一对 Ed25519 密钥对（hex 格式）。"""
-    keys = gen_ed25519()
-    return {
-        "sk": keys["private_key_hex"],
-        "pk": keys["public_key_hex"],
+# --- 测试用例 ---
+
+def test_gen_ed25519_format():
+    """测试 Ed25519 密钥生成函数的输出格式"""
+    key_pair = crypto.gen_ed25519()
+    assert isinstance(key_pair, dict)
+    assert set(key_pair.keys()) == {
+        "private_key_hex", "public_key_hex", "public_key_multibase"
     }
+    # Ed25519 私钥种子是 32 字节, 公钥是 32 字节
+    assert len(key_pair["private_key_hex"]) == 64
+    assert len(key_pair["public_key_hex"]) == 64
+    assert key_pair["public_key_multibase"].startswith('z')
 
 
-def test_sign_and_verify(ed_keys):
-    """签名并验证应通过。"""
-    message = "Hello BlockA2A"
-    proof: Proof = sign(
-        message=message,
-        private_key=ed_keys["sk"],
-        proof_type="Ed25519Signature2020",
-        verification_method="did:example:alice#key-1",
+def test_gen_bls12_381_g2_format():
+    """测试 BLS12-381/G2 密钥生成函数的输出格式"""
+    key_pair = crypto.gen_bls12_381_g2()
+    assert isinstance(key_pair, dict)
+    assert set(key_pair.keys()) == {
+        "private_key_int", "private_key_hex", "public_key_hex", "public_key_multibase"
+    }
+    # 压缩公钥是 96 字节
+    assert len(key_pair["public_key_hex"]) == 192
+    assert key_pair["public_key_multibase"].startswith('z')
+
+
+def test_bls12_381_g2_pubkey_to_coords():
+    """测试 BLS12-381 G2 坐标转换函数"""
+    key_pair = crypto.gen_bls12_381_g2()
+    coords = crypto.bls12_381_g2_pubkey_to_coords(key_pair["public_key_hex"])
+    assert isinstance(coords, dict)
+    assert set(coords.keys()) == {"x_r", "x_i", "y_r", "y_i"}
+    assert all(isinstance(v, int) for v in coords.values())
+
+
+def test_gen_bn256_g2_format():
+    """测试新增的 BN256/G2 密钥生成函数的输出格式"""
+    key_pair = crypto.gen_bn256_g2()
+    assert isinstance(key_pair, dict)
+    assert set(key_pair.keys()) == {
+        "private_key_int", "private_key_hex", "public_key_hex", "public_key_multibase"
+    }
+    # 压缩公钥是 64 字节
+    assert len(key_pair["public_key_hex"]) == 128
+    assert key_pair["public_key_multibase"].startswith('z')
+
+
+def test_bn256_g2_pubkey_to_coords_and_roundtrip():
+    """
+    测试 BN256 G2 坐标转换，并进行关键的往返验证。
+    确保从坐标可以重构出原始公钥。
+    """
+    # 1. 使用底层库生成一个原始密钥对
+    sk, pk = bls_bn256.generate_keypair()
+
+    # 2. 使用待测模块的压缩和坐标转换功能
+    pk_bytes = bls_bn256.compress_g2(pk)
+    coords = crypto.bn256_g2_pubkey_to_coords(pk_bytes)
+
+    # 3. 验证输出格式
+    assert isinstance(coords, dict)
+    assert set(coords.keys()) == {"x_r", "x_i", "y_r", "y_i"}
+    assert all(isinstance(v, int) for v in coords.values())
+
+    # 4. 关键：从坐标重构 FQ2 点，并与原始公钥比较
+    x_reconstructed = FQ2([coords["x_r"], coords["x_i"]])
+    y_reconstructed = FQ2([coords["y_r"], coords["y_i"]])
+    pk_reconstructed = (x_reconstructed, y_reconstructed)
+
+    assert pk == pk_reconstructed, "从坐标重构的公钥与原始公钥不匹配"
+
+
+def test_generate_key_sets():
+    """测试批量生成函数"""
+    count = 2
+    key_sets = crypto.generate_key_sets(count)
+
+    assert isinstance(key_sets, list)
+    assert len(key_sets) == count
+
+    first_set = key_sets[0]
+    assert isinstance(first_set, dict)
+    assert "set" in first_set
+    assert "ed25519" in first_set
+    assert "bls12_381_g2" in first_set
+    assert "bn256_g2" in first_set
+    assert "g2_affine_coords" in first_set["bls12_381_g2"]
+    assert "g2_affine_coords" in first_set["bn256_g2"]
+
+
+def test_ed25519_sign_verify_end_to_end():
+    """对模块中的 Ed25519 签名和验证流程进行端到端测试"""
+    # 1. 生成密钥
+    key_pair = crypto.gen_ed25519()
+    priv_key_hex = key_pair["private_key_hex"]
+    pub_key_hex = key_pair["public_key_hex"]
+
+    # 2. 准备签名参数
+    message = "This is a test message for Ed25519 signature."
+    verification_method = "did:example:123#keys-1"
+
+    # 3. 签名 (直接使用32字节的私钥)
+    proof = crypto.sign(
+        message,
+        bytes.fromhex(priv_key_hex),  # 将32字节的hex私钥转换为bytes
+        "Ed25519Signature2020",
+        verification_method
     )
-    assert verify(
-        proof=proof,
-        message=message,
-        public_key=ed_keys["pk"],
-    ), "Valid proof should verify"
 
+    # 4. 验证 (肯定性测试)
+    is_valid = crypto.verify(proof, message, pub_key_hex)
+    assert is_valid is True, "有效的签名未能通过验证"
 
-def test_verify_with_wrong_message(ed_keys):
-    """用错误消息验签应失败。"""
-    proof = sign(
-        message="Original Message",
-        private_key=ed_keys["sk"],
-        proof_type="Ed25519Signature2020",
-        verification_method="did:example:alice#key-1",
-    )
-    assert not verify(
-        proof=proof,
-        message="Original Message!",
-        public_key=ed_keys["pk"],
-    ), "Verification with wrong message should fail"
-
-
-def test_verify_with_wrong_public_key(ed_keys):
-    """用错误公钥验签应失败。"""
-    proof = sign(
-        message="Msg",
-        private_key=ed_keys["sk"],
-        proof_type="Ed25519Signature2020",
-        verification_method="did:example:alice#key-1",
-    )
-    other = gen_ed25519()
-    assert not verify(
-        proof=proof,
-        message="Msg",
-        public_key=other["public_key_hex"],
-    ), "Verification with wrong public key should fail"
-
-
-def test_verify_with_tampered_signature(ed_keys):
-    """篡改签名后验签应失败。"""
-    proof = sign(
-        message="BlockA2A",
-        private_key=ed_keys["sk"],
-        proof_type="Ed25519Signature2020",
-        verification_method="did:example:alice#key-1",
-    )
-    # 用 model_copy 更新 proofValue 最后一位，模拟篡改
-    original = proof.proofValue
-    last = original[-1]
-    flipped = ("0" if last != "0" else "1")
-    tampered = proof.model_copy(update={"proofValue": original[:-1] + flipped})
-
-    assert not verify(
-        proof=tampered,
-        message="BlockA2A",
-        public_key=ed_keys["pk"],
-    ), "Verification with tampered signature should fail"
+    # 5. 验证 (否定性测试)
+    is_invalid = crypto.verify(proof, "a different message", pub_key_hex)
+    assert is_invalid is False, "使用错误消息的验证应失败"

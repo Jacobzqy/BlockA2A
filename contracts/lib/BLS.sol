@@ -10,7 +10,6 @@ import {ModexpInverse, ModexpSqrt} from "./ModExp.sol";
 /// @dev Adapted from https://github.com/thehubbleproject/hubble-contracts
 /// @dev Leveraging additional documentation from https://github.com/kevincharm/bls-bn254/blob/master/contracts/BLS.sol
 /// @dev A long form article: https://hackmd.io/@liangcc/bls-solidity
-/// @dev 在原有 hashToPoint / verifySingle 基础上，增加 g2Add() 接口
 
 library BLS {
     // Field order of BN254 curve
@@ -54,40 +53,6 @@ library BLS {
     error MapToPointFailed(uint256 noSqrt);
     error InvalidDSTLength(bytes dst);
     error ModExpFailed(uint256 base, uint256 exponent, uint256 modulus);
-
-    function g2Add(
-        uint256[4] memory p1,
-        uint256[4] memory p2
-    ) internal view returns (uint256[4] memory r) {
-        bool success;
-        assembly {
-            // 将 p1||p2 放到内存连续 256 bytes
-            let ptr := mload(0x40)
-            mstore(ptr,           mload(p1))
-            mstore(add(ptr,32),   mload(add(p1,32)))
-            mstore(add(ptr,64),   mload(add(p1,64)))
-            mstore(add(ptr,96),   mload(add(p1,96)))
-            mstore(add(ptr,128),  mload(p2))
-            mstore(add(ptr,160),  mload(add(p2,32)))
-            mstore(add(ptr,192),  mload(add(p2,64)))
-            mstore(add(ptr,224),  mload(add(p2,96)))
-            // 调用预编译地址 0x0c
-            success := staticcall(
-                gas(),
-                0x0c,
-                ptr,
-                256,
-                ptr,
-                128
-            )
-            // 把结果读回 r
-            mstore(r,           mload(ptr))
-            mstore(add(r,32),   mload(add(ptr,32)))
-            mstore(add(r,64),   mload(add(ptr,64)))
-            mstore(add(r,96),   mload(add(ptr,96)))
-        }
-        require(success, "BLS: G2 add failed");
-    }
 
     /// @notice Verify a single BLS signature
     /// @param signature The signature to verify (G1 point)

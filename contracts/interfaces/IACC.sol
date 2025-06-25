@@ -11,6 +11,13 @@ interface IACC {
         bytes policyParameters;
     }
 
+    struct AccessToken {
+        string agentDID;
+        string actionIdentifier;
+        string resourceIdentifier;
+        uint256 expiry;
+    }
+
     struct KV {
         string key;
         string value;
@@ -21,11 +28,9 @@ interface IACC {
         string actionIdentifier;
         string policyTypeStr;
         KV[] policyParameters;
-        address[] controllers;
-        uint256[4][] blsPubKeys;
         uint8 requiredSigs;
         uint256[2] aggSig;
-        uint256 controllerMask;
+        uint8 pksMask;
     }
 
     struct RemovePolicyParams {
@@ -34,7 +39,7 @@ interface IACC {
         string policyTypeStr;
         KV[] policyParameters;
         uint256[2] aggSig;
-        uint256 controllerMask;
+        uint8 pksMask;
     }
 
     function getPolicy(
@@ -50,9 +55,9 @@ interface IACC {
         RemovePolicyParams calldata params
     ) external returns (bool);
 
-    function evaluateAccess(
+    function evaluate(
         string calldata agentDID,
         string calldata resourceIdentifier,
         string calldata actionIdentifier
-    ) external returns (bool);
+    ) external returns (AccessToken memory token);
 }

@@ -156,6 +156,43 @@
         "DIDAttributePolicyLogic"
       ]
     },
+    "/Users/zhanqiuyang/learn/research/BlockA2A/contracts/lib/EnvironmentalPolicyLogic.sol": {
+      "lastModificationDate": 1748940535811,
+      "contentHash": "025140ba51abb3f85d6d165f1b4ac7bd",
+      "sourceName": "contracts/lib/EnvironmentalPolicyLogic.sol",
+      "solcConfig": {
+        "version": "0.8.24",
+        "settings": {
+          "viaIR": true,
+          "optimizer": {
+            "enabled": true,
+            "runs": 1000000
+          },
+          "evmVersion": "paris",
+          "outputSelection": {
+            "*": {
+              "*": [
+                "abi",
+                "evm.bytecode",
+                "evm.deployedBytecode",
+                "evm.methodIdentifiers",
+                "metadata"
+              ],
+              "": [
+                "ast"
+              ]
+            }
+          }
+        }
+      },
+      "imports": [],
+      "versionPragmas": [
+        "^0.8.20"
+      ],
+      "artifacts": [
+        "EnvironmentalPolicyLogic"
+      ]
+    },
     "/Users/zhanqiuyang/learn/research/BlockA2A/contracts/interfaces/IAGC.sol": {
       "lastModificationDate": 1750768911733,
       "contentHash": "7c1bc9d14815c4444a480a186d39cb32",
@@ -230,43 +267,6 @@
       ],
       "artifacts": [
         "BLS"
-      ]
-    },
-    "/Users/zhanqiuyang/learn/research/BlockA2A/contracts/lib/EnvironmentalPolicyLogic.sol": {
-      "lastModificationDate": 1748940535811,
-      "contentHash": "025140ba51abb3f85d6d165f1b4ac7bd",
-      "sourceName": "contracts/lib/EnvironmentalPolicyLogic.sol",
-      "solcConfig": {
-        "version": "0.8.24",
-        "settings": {
-          "viaIR": true,
-          "optimizer": {
-            "enabled": true,
-            "runs": 1000000
-          },
-          "evmVersion": "paris",
-          "outputSelection": {
-            "*": {
-              "*": [
-                "abi",
-                "evm.bytecode",
-                "evm.deployedBytecode",
-                "evm.methodIdentifiers",
-                "metadata"
-              ],
-              "": [
-                "ast"
-              ]
-            }
-          }
-        }
-      },
-      "imports": [],
-      "versionPragmas": [
-        "^0.8.20"
-      ],
-      "artifacts": [
-        "EnvironmentalPolicyLogic"
       ]
     },
     "/Users/zhanqiuyang/learn/research/BlockA2A/contracts/lib/ModExp.sol": {
@@ -386,8 +386,8 @@
       ]
     },
     "/Users/zhanqiuyang/learn/research/BlockA2A/contracts/main/AgentGovernanceContract.sol": {
-      "lastModificationDate": 1750768843997,
-      "contentHash": "23f227c23efa53be6b6575e8abd6abce",
+      "lastModificationDate": 1750791715403,
+      "contentHash": "6144bcef674f0e3cea2ccfd62a052af1",
       "sourceName": "contracts/main/AgentGovernanceContract.sol",
       "solcConfig": {
         "version": "0.8.24",

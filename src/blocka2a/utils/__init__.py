@@ -15,7 +15,7 @@ from .ipfs import IPFSClient
 from .crypto import (
     gen_ed25519,
     gen_bls12_381_g2,
-    bls_g2_pubkey_to_coords,
+    bls12_381_g2_pubkey_to_coords,
     generate_key_sets,
 )
 
@@ -26,6 +26,6 @@ __all__ = [
     # crypto helpers
     "gen_ed25519",
     "gen_bls12_381_g2",
-    "bls_g2_pubkey_to_coords",
+    "bls12_381_g2_pubkey_to_coords",
     "generate_key_sets",
 ]

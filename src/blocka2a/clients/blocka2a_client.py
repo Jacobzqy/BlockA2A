@@ -12,7 +12,8 @@ from py_ecc.bls import G2ProofOfPossession
 
 from src.blocka2a.clients.base_client import BaseClient
 from src.blocka2a.clients.errors import InvalidParameterError, IdentityError, ContractError, NetworkError, LedgerError
-from src.blocka2a.types import PublicKeyEntry, ServiceEntry, Capabilities, PolicyConstraints, Proof, DIDDocument, BLSPubkey, BLSSignature, BLSPrivateKey
+from src.blocka2a.types import PublicKeyEntry, ServiceEntry, Capabilities, PolicyConstraints, Proof, DIDDocument, \
+    BLSPubkey, BLSSignature, BLSPrivateKey, AccessToken
 from src.blocka2a.contracts import access_control_contract, interaction_logic_contract, agent_governance_contract, data_anchoring_contract
 
 class BlockA2AClient(BaseClient):
@@ -421,3 +422,54 @@ class BlockA2AClient(BaseClient):
         end = time.time()
         print(f"signature generation {(end - start):.6f} s")
         return sig
+
+    def request_resource(self, did: str, resource_identifier: str, action_identifier: str) -> AccessToken:
+        """
+        Requests access to a resource by calling the issueToken function on the ACC.
+        If successful, it constructs and returns a token object.
+
+        Args:
+            did: The DID of the agent requesting access.
+            resource_identifier: The identifier of the resource being requested.
+            action_identifier: The action being requested on the resource.
+
+        Returns:
+            A token dictionary containing all necessary information for verification.
+
+        Raises:
+            ContractError: If the transaction fails or the event is not found.
+            IdentityError: If the client is not configured with a private key.
+        """
+        if not self._acct:
+            raise IdentityError("A private key is required to request a resource.")
+
+        # Call the issueToken function on the smart contract
+        try:
+            tx_hash = self._send_tx(
+                self._acc.functions.evaluate,
+                did,
+                resource_identifier,
+                action_identifier,
+            )
+            receipt = self._w3.eth.wait_for_transaction_receipt(tx_hash)
+            if receipt.status != 1:
+                raise ContractError(f"Token issuance transaction failed with hash: {tx_hash.hex()}")
+        except Exception as e:
+            raise ContractError(f"Failed to send issueToken transaction: {e}") from e
+
+        # Process the logs to find the TokenIssued event and extract its data
+        logs = self._acc.events.TokenIssued().process_receipt(receipt)
+        if not logs:
+            raise ContractError("TokenIssued event not found in transaction receipt.")
+
+        event_args = logs[0]['args']
+        expiry = event_args['expiry']
+
+        # Construct the token object with data from the request and the event
+        token = AccessToken(
+            agentDID = did,
+            actionIdentifier = action_identifier,
+            resourceIdentifier = resource_identifier,
+            expiry = expiry,
+        )
+        return token
