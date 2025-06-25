@@ -13,7 +13,7 @@ from web3.exceptions import ContractLogicError
 # ---------------------------------------------------------------------------
 #  1. 引入 utils.bn256 BLS 实现
 # ---------------------------------------------------------------------------
-from src.blocka2a.utils import new as bls
+from src.blocka2a.utils import bn256 as bls
 
 # 类型别名
 SecretKey = NewType("SecretKey", int)

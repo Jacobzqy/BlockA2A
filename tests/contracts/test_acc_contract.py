@@ -11,7 +11,7 @@ from eth_abi.packed import encode_packed
 # --------------------------------------------------------------------
 # 1. 导入和配置 (无变化)
 # --------------------------------------------------------------------
-from src.blocka2a.utils.new import (
+from src.blocka2a.utils.bn256 import (
     sign, aggregate_sigs, SecretKey, PublicKey, Signature, multiply, G2
 )
 

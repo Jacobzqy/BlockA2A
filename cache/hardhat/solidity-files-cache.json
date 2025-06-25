@@ -39,8 +39,8 @@
       ]
     },
     "/Users/zhanqiuyang/learn/research/BlockA2A/contracts/main/AccessControlContract.sol": {
-      "lastModificationDate": 1750827911934,
-      "contentHash": "a605215ad893813b288de702411132a9",
+      "lastModificationDate": 1750834644573,
+      "contentHash": "81cdf2ae175e6fcdcaf37c555e283d93",
       "sourceName": "contracts/main/AccessControlContract.sol",
       "solcConfig": {
         "version": "0.8.24",
