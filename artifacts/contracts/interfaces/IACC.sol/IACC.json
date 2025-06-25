@@ -21,12 +21,34 @@
           "type": "string"
         }
       ],
-      "name": "evaluateAccess",
+      "name": "evaluate",
       "outputs": [
         {
-          "internalType": "bool",
-          "name": "",
-          "type": "bool"
+          "components": [
+            {
+              "internalType": "string",
+              "name": "agentDID",
+              "type": "string"
+            },
+            {
+              "internalType": "string",
+              "name": "actionIdentifier",
+              "type": "string"
+            },
+            {
+              "internalType": "string",
+              "name": "resourceIdentifier",
+              "type": "string"
+            },
+            {
+              "internalType": "uint256",
+              "name": "expiry",
+              "type": "uint256"
+            }
+          ],
+          "internalType": "struct IACC.AccessToken",
+          "name": "token",
+          "type": "tuple"
         }
       ],
       "stateMutability": "nonpayable",
@@ -105,16 +127,6 @@
               "type": "tuple[]"
             },
             {
-              "internalType": "address[]",
-              "name": "controllers",
-              "type": "address[]"
-            },
-            {
-              "internalType": "uint256[4][]",
-              "name": "blsPubKeys",
-              "type": "uint256[4][]"
-            },
-            {
               "internalType": "uint8",
               "name": "requiredSigs",
               "type": "uint8"
@@ -125,9 +137,9 @@
               "type": "uint256[2]"
             },
             {
-              "internalType": "uint256",
-              "name": "controllerMask",
-              "type": "uint256"
+              "internalType": "uint8",
+              "name": "pksMask",
+              "type": "uint8"
             }
           ],
           "internalType": "struct IACC.RegisterPolicyParams",
@@ -188,9 +200,9 @@
               "type": "uint256[2]"
             },
             {
-              "internalType": "uint256",
-              "name": "controllerMask",
-              "type": "uint256"
+              "internalType": "uint8",
+              "name": "pksMask",
+              "type": "uint8"
             }
           ],
           "internalType": "struct IACC.RemovePolicyParams",

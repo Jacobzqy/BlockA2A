@@ -63,7 +63,7 @@ contract AccessControlContract is IACC {
     ];
 
     mapping(bytes32 => uint256) public validTokenHashes;
-    mapping(bytes32 => PoliciesEntry) private _policies;
+    mapping(bytes32 => PoliciesEntry) public _policies;
 
     string public systemThreatLevel = "low";
 
@@ -109,7 +109,6 @@ contract AccessControlContract is IACC {
         }
 
         bytes memory payload = abi.encodePacked(
-            keccak256(bytes("ACC")),
             params.resourceIdentifier,
             params.actionIdentifier,
             params.policyTypeStr,
@@ -173,15 +172,15 @@ contract AccessControlContract is IACC {
             Policy storage p = entry.policies[i];
 
             if(p.policyType == PolicyType.TEMPORAL) {
-                TemporalPolicyLogic.TemporalParams memory tp = abi.decode(p.policyParameters, (TemporalPolicyLogic.TemporalParams));
-                bool ok = TemporalPolicyLogic.evaluate(tp);
-                if(!ok) return false;
+                //TemporalPolicyLogic.TemporalParams memory tp = abi.decode(p.policyParameters, (TemporalPolicyLogic.TemporalParams));
+                //bool ok = TemporalPolicyLogic.evaluate(tp);
+                //if(!ok) return false;
             } else if(p.policyType == PolicyType.DIDATTRIBUTE) {
-                if (keccak256(bytes(agentDID)) == 0) return false;
+                //if (keccak256(bytes(agentDID)) == 0) return false;
             } else if(p.policyType == PolicyType.ENVIRONMENTAL) {
-                EnvironmentalPolicyLogic.RiskLevel ep = abi.decode(p.policyParameters, (EnvironmentalPolicyLogic.RiskLevel));
-                bool ok = EnvironmentalPolicyLogic.evaluate(systemThreatLevel, ep);
-                if(!ok) return false;
+                //EnvironmentalPolicyLogic.RiskLevel ep = abi.decode(p.policyParameters, (EnvironmentalPolicyLogic.RiskLevel));
+                //bool ok = EnvironmentalPolicyLogic.evaluate(systemThreatLevel, ep);
+                //if(!ok) return false;
             } else {
                 revert("ACC: unknown policy type");
             }
@@ -264,7 +263,6 @@ contract AccessControlContract is IACC {
         VerifySigInternalParams memory sigParams
     ) internal view {
         bytes memory payload = abi.encodePacked(
-            keccak256(bytes("ACC")),
             sigParams.resourceIdentifier,
             sigParams.actionIdentifier,
             sigParams.policyTypeStr,

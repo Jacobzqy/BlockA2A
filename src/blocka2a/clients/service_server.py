@@ -42,6 +42,12 @@ class ServiceServer(BaseClient):
         )
 
     def verify_token(self, token: AccessToken) -> bool:
+        if token['resourceIdentifier'] != self._resource_identifier:
+            return False
+
+        if token['actionIdentifier'] not in self._registered_actions:
+            return False
+
         token_hash = self.get_token_hash(token)
 
         try:

@@ -9,119 +9,51 @@ import "../lib/BN256G2.sol";
 /**
  * @title  AgentGovernanceContract
  * @notice DID registry with on-chain BLS signature verification.
- *
- * @dev    Stores oracle public keys as multibase(Base58-btc) strings and
- *         decodes + decompresses them to G2 limbs on demand.
+ * @dev    This version is corrected for testability and logical consistency.
  */
 contract AgentGovernanceContract is IAGC {
-    /* ------------------------------------------------------------------ */
-    /* 1. Hard-coded oracle G2 pub-keys (uint256[4] per key)               */
-    /* Order: [x_r, x_i, y_r, y_i]   ← 适配 BN256G2.ECTwistAdd()      */
-    /* ------------------------------------------------------------------ */
-    uint256[4][5] internal _blsPubKeyList = [
-        /* key-1 */
-        [
-            7201262511018777420451623912981106805074895484287586479273509767667031020877,
-            20627995582691274325938795393287500578829791078774336744819305859549221054247,
-            17794544309597632664804340361278364484914857652765668401051331223281973265488,
-            16428373389911722451866691214395631318837975390055736858258279478012471302068
-        ],
-        /* key-2 */
-        [
-            16434898235636967359907296089219646677434070620369214688456265912781365309740,
-            20672905215967458025863051617247169375376474967764917936943384557269291631707,
-            21082228425857990356657446562831270628394855211199455426641043315157773108500,
-            6836206877332651390097084383609590185148303449902042757297653320094804212287
-        ],
-        /* key-3 */
-        [
-            9799171705170468065272349835531654635184539585297902249724341319010720592456,
-            4583224473756412134598492934991320648693771207254682869740814743783417776115,
-            10333586867519003804950951510402253133954594662645400621716312600463417762187,
-            3387986602677557717495442587955363899785285107168820325512707677224587602421
-        ],
-        /* key-4 */
-        [
-            5159020562597402209428121078249167730088529356255454136598327015868231914806,
-            20688083087888160286743136529691971779201342198606331628359833282625656020108,
-            19028121209301892988000839473152200147897750033456956113172372269206363401876,
-            10424726172542083659009102852390757309048665182873384172664112560956080117768
-        ],
-        /* key-5 */
-        [
-            10213554732849998790090689158401969308069776785180793695124967312334345756572,
-            20712802657811935955414069141625701711122135244599603342802493798180707315723,
-            13363941958492403586700552175411348053136024457768386857160623775844466087194,
-            8298407620731997134278584413798174062700966781613970239543932432091190233924
-        ]
-    ];
+    // --- STATE VARIABLES ---
 
-    /**
-     * @dev Aggregate G2 public keys selected by a bitmask.
-     * @param mask Bitmask selecting which keys to include (LSB = key index 0).
-     * @return aggPk The aggregated G2 public key (uint256[4] limbs).
-     * @return count Number of keys that were aggregated.
-     */
-    function _aggregate(uint8 mask)
-        internal
-        view
-        returns (uint256[4] memory aggPk, uint256 count)
-    {
-        for (uint8 i = 0; i < _blsPubKeyList.length; i++) {
-            if ((mask & (1 << i)) != 0) {
-                (aggPk[0], aggPk[1], aggPk[2], aggPk[3]) = BN256G2.ECTwistAdd(aggPk[0], aggPk[1], aggPk[2], aggPk[3], _blsPubKeyList[i][0], _blsPubKeyList[i][1], _blsPubKeyList[i][2], _blsPubKeyList[i][3]);
-                count += 1;
-            }
-        }
-        return (aggPk, count);
-    }
+    // Oracle public keys are injected via constructor for deterministic testing
+    uint256[4][5] internal _blsPubKeyList;
 
-    /// @notice Expected DID prefix string.
+    // Key mappings are public to allow for state verification in tests
+    mapping(string => DIDEntry) public _didEntries;
+    mapping(string => bool) public _isDIDRegistered;
+    mapping(string => uint256) public nonces;
+
+
+    // --- CONSTANTS AND ENUMS ---
+
     string public constant DID_PREFIX = "did:blocka2a:";
+    uint256 public constant PREFIX_LENGTH = 13;
+    uint256 public constant EXPECTED_DID_LENGTH = PREFIX_LENGTH + 10;
 
-    // Domain separation tags for BLS hash-to-curve
+    // These constants are now only used to derive the domain strings for hashToPoint
     bytes32 public constant DST_UPDATE = keccak256("AGC-update");
     bytes32 public constant DST_REVOKE = keccak256("AGC-revoke");
-
-    /// @notice Length of the prefix in bytes.
-    uint256 public constant PREFIX_LENGTH = 10;
-
-    /// @notice Total expected DID length = prefix + 10 hex chars.
-    uint256 public constant EXPECTED_DID_LENGTH = PREFIX_LENGTH + 10;
 
     enum DIDLifecycleState {
         Active,
         Revoked
     }
 
-    /// @notice Defines the data structure for a DID entry stored on-chain.
-    /// @dev Contains metadata and state for a registered DID document, including its IPFS CID.
     struct DIDEntry {
-        /// @notice The Decentralized Identifier string.
         string DID;
-
-        /// @notice The version number of the DID document.
         uint256 version;
-
-        /// @notice SHA-256 hash of the current DID document JSON.
         bytes32 currentDocumentHash;
-
-        /// @notice UNIX timestamp when the document was registered or last updated.
         uint256 timestamp;
-
-        /// @notice Current lifecycle state of the DID (e.g., Active, Revoked).
         DIDLifecycleState currentState;
-
-        /// @notice IPFS Content Identifier for the DID document.
         string cid;
-
-        /// @notice Number of signatures required to approve future updates.
         uint8 requiredSigsForUpdate;
     }
 
-    mapping(string => DIDEntry) private _didEntries;
-    mapping(string => bool) private _isDIDRegistered;
-    mapping(string => uint256) public nonces;
+
+    // --- CONSTRUCTOR & MODIFIERS ---
+
+    constructor(uint256[4][5] memory initialPubKeys) {
+        _blsPubKeyList = initialPubKeys;
+    }
 
     modifier didMustExist(string memory DID) {
         require(_isDIDRegistered[DID], "AGC: DID not registered");
@@ -133,33 +65,19 @@ contract AgentGovernanceContract is IAGC {
         _;
     }
 
-    /**
-     * @notice Registers a new DID document on-chain and stores its IPFS CID.
-     * @dev CID is persisted in the DIDEntry; controllers are managed elsewhere.
-     * @param DID The Decentralized Identifier to register.
-     * @param documentHash The SHA-256 hash of the DID document JSON.
-     * @param cid The IPFS content identifier for the document.
-     * @param _requiredSigsForCapUpdate The number of signatures required for future capability updates.
-     * @return success Always returns true on success.
-     */
+
+    // --- CORE FUNCTIONS ---
+
     function register(
         string memory DID,
         bytes32 documentHash,
         string memory cid,
         uint8 _requiredSigsForCapUpdate
     ) external override returns (bool success) {
-        // Validate DID format
-        if (!_validDIDFormat(DID)) {
-            return false;
-        }
-
-        // Ensure DID is not already registered
+        require(_validDIDFormat(DID), "AGC: Invalid DID format");
         require(!_isDIDRegistered[DID], "AGC: DID already registered");
-
-        // Ensure at least one signature is required for updates
         require(_requiredSigsForCapUpdate > 0, "AGC: requiredSigsForCapUpdate must be > 0");
 
-        // Persist the DID entry, including CID for later retrieval
         _didEntries[DID] = DIDEntry({
             DID: DID,
             version: 1,
@@ -170,102 +88,73 @@ contract AgentGovernanceContract is IAGC {
             requiredSigsForUpdate: _requiredSigsForCapUpdate
         });
 
-        // Mark DID as registered and initialize nonce
         _isDIDRegistered[DID] = true;
         nonces[DID] = 1;
 
-        // Emit creation event
         emit DIDCreated(DID, documentHash);
-
         return true;
     }
 
-    /// @notice Updates the DID document after verifying an aggregated BLS signature.
-    /// @dev 1) Uses a constant domain tag DST_UPDATE for both payload and hash-to-curve.
-    ///      2) Uses entry.version (instead of separate nonce) for replay protection.
-    ///      3) Aggregates public keys from a fixed _blsPubKeyList via controllerMask.
-    /// @param DID The Decentralized Identifier to update.
-    /// @param newDocumentHash The new SHA-256 hash of the DID document JSON.
-    /// @param aggSig The aggregated BLS signature over the update payload.
-    /// @param pksMask A bitmask selecting which entries in _blsPubKeyList participated.
-    /// @return success Always true if the update and signature verification succeed.
     function update(
         string memory DID,
         bytes32 newDocumentHash,
         uint256[2] memory aggSig,
         uint8 pksMask
     ) external override didMustExist(DID) didMustBeActive(DID) returns (bool success) {
-        // 1. 读取并准备条目
         DIDEntry storage entry = _didEntries[DID];
 
-        // 2. 构造签名负载：DST_UPDATE || DID || newDocumentHash || entry.version
+        // 【最终修正】签名负载 (payload) 只包含纯业务数据，不再打包 DST_UPDATE 常量。
         bytes memory payload = abi.encodePacked(
-            DST_UPDATE,
             DID,
             newDocumentHash,
             entry.version
         );
 
-        // 3. 将 payload 哈希到 G1 曲线点
+        // 使用字符串 "AGC-update" 作为哈希算法的域，与 Python 库的行为完全匹配。
         uint256[2] memory H = BLS.hashToPoint("AGC-update", payload);
 
-        // 4. 聚合掩码对应的公钥
         uint256[4] memory aggPk;
         uint256 signerCount;
         (aggPk, signerCount) = _aggregate(pksMask);
 
         require(signerCount >= entry.requiredSigsForUpdate, "AGC: not enough signers");
 
-        // 5. 验证聚合签名
         (bool ok, ) = BLS.verifySingle(aggSig, aggPk, H);
         require(ok, "AGC: aggregate signature verification failed");
 
-        // 6. 更新链上状态
         entry.currentDocumentHash = newDocumentHash;
         entry.version++;
         entry.timestamp = block.timestamp;
 
-        // 7. 发出事件
         emit DIDDocumentUpdated(DID, newDocumentHash);
-
         return true;
     }
 
-    /// @notice Revokes a DID after verifying an aggregated BLS signature.
-    /// @dev Uses a fixed array of five stored BLS public keys; a bitmask selects signers.
-    /// @param DID The Decentralized Identifier to revoke.
-    /// @param aggSig The aggregated BLS signature over the revoke payload.
-    /// @param pksMask A bitmask indicating which public keys (by index) participated.
-    /// @return success True if the revocation and verification succeed.
     function revoke(
         string memory DID,
         uint256[2] memory aggSig,
         uint8 pksMask
     ) external override didMustExist(DID) didMustBeActive(DID) returns (bool success) {
-        // Fetch the stored DID entry
         DIDEntry storage entry = _didEntries[DID];
 
-        // Prepare the signing payload: domain separator, DID, zero hash placeholder, and version
+        // 【最终修正】签名负载 (payload) 只包含纯业务数据，不再打包 DST_REVOKE 常量。
         bytes memory payload = abi.encodePacked(
-            DST_REVOKE,
             DID,
             bytes32(0),
             entry.version
         );
-        // Hash the payload to a G1 curve point using domain-separated tag
+
+        // 使用字符串 "AGC-revoke" 作为哈希算法的域。
         uint256[2] memory H = BLS.hashToPoint("AGC-revoke", payload);
 
-        // Aggregate selected public keys based on mask
         uint256[4] memory aggPk;
         uint256 signerCount;
         (aggPk, signerCount) = _aggregate(pksMask);
         require(signerCount >= entry.requiredSigsForUpdate, "AGC: not enough signers");
 
-        // Verify the aggregated signature
         (bool ok, ) = BLS.verifySingle(aggSig, aggPk, H);
         require(ok, "AGC: aggregate signature verification failed");
 
-        // Mark the DID as revoked and update state
         entry.currentState = DIDLifecycleState.Revoked;
         entry.version++;
         entry.timestamp = block.timestamp;
@@ -274,11 +163,6 @@ contract AgentGovernanceContract is IAGC {
         return true;
     }
 
-    /// @notice Retrieves the current document hash and IPFS CID for a given DID.
-    /// @dev Requires that the DID exists and is in an active state.
-    /// @param DID The Decentralized Identifier to resolve.
-    /// @return documentHash The SHA-256 hash of the DID document.
-    /// @return cid The IPFS content identifier associated with the DID document.
     function resolve(
         string memory DID
     ) external override didMustExist(DID) didMustBeActive(DID) view returns (
@@ -289,9 +173,24 @@ contract AgentGovernanceContract is IAGC {
         return (entry.currentDocumentHash, entry.cid);
     }
 
-    /// @notice Checks whether a DID string matches the format "did:blocka2a:[10 hex chars]".
-    /// @param DID The DID string to validate.
-    /// @return valid True if the DID matches the expected format, false otherwise.
+
+    // --- INTERNAL HELPERS ---
+
+    function _aggregate(uint8 mask)
+        internal view returns (uint256[4] memory aggPk, uint256 count)
+    {
+        for (uint8 i = 0; i < _blsPubKeyList.length; i++) {
+            if ((mask & (1 << i)) != 0) {
+                (aggPk[0], aggPk[1], aggPk[2], aggPk[3]) = BN256G2.ECTwistAdd(
+                    aggPk[0], aggPk[1], aggPk[2], aggPk[3],
+                    _blsPubKeyList[i][0], _blsPubKeyList[i][1], _blsPubKeyList[i][2], _blsPubKeyList[i][3]
+                );
+                count += 1;
+            }
+        }
+        return (aggPk, count);
+    }
+
     function _validDIDFormat(string memory DID) internal pure returns (bool valid) {
         bytes memory didBytes = bytes(DID);
         bytes memory prefixBytes  = bytes(DID_PREFIX);
