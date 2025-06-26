@@ -498,3 +498,50 @@ class BlockA2AClient(BaseClient):
             expiry = expiry,
         )
         return token
+    
+    
+    def agc_update(
+        self,
+        did: str,
+        new_document_hash: bytes,
+        agg_sig: List[int],  # [x1, x2, y1, y2] 格式的签名
+        pks_mask: int
+    ) -> HexBytes:
+        """更新 DID 文档"""
+        tx = self._agc.functions.update(
+            did,
+            new_document_hash,
+            agg_sig,
+            pks_mask
+        ).build_transaction({
+            'from': self._account.address,
+            'gas': self._default_gas,
+            'nonce': self._web3.eth.get_transaction_count(self._account.address),
+        })
+        
+        signed_tx = self._account.sign_transaction(tx)
+        return self._web3.eth.send_raw_transaction(signed_tx.rawTransaction)
+    
+    def agc_resolve(self, did: str) -> Tuple[bytes, str]:
+        """解析 DID 信息"""
+        return self._agc.functions.resolve(did).call()
+    
+    def agc_revoke(
+        self,
+        did: str,
+        agg_sig: List[int],  # [x1, x2, y1, y2] 格式的签名
+        pks_mask: int
+    ) -> HexBytes:
+        """撤销 DID"""
+        tx = self._agc.functions.revoke(
+            did,
+            agg_sig,
+            pks_mask
+        ).build_transaction({
+            'from': self._account.address,
+            'gas': self._default_gas,
+            'nonce': self._web3.eth.get_transaction_count(self._account.address),
+        })
+        
+        signed_tx = self._account.sign_transaction(tx)
+        return self._web3.eth.send_raw_transaction(signed_tx.rawTransaction)
