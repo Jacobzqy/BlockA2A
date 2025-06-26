@@ -32,18 +32,13 @@ class ServiceServer(BaseClient):
         self._registered_actions.add(action_identifier)
         return True
 
-    # @classmethod
-    # def get_token_hash(cls, token: AccessToken) -> bytes:
-    #     return Web3.solidity_keccak(
-    #         ['string', 'string', 'string', 'string', 'string', 'string', 'string', 'int'],
-    #         [token.agentDID, "|", token.actionIdentifier, "|", token.resourceIdentifier, "|", token.expiry]
-    #     )
+    
 
     @classmethod
     def get_token_hash(cls, token: AccessToken) -> bytes:
         # 使用点语法访问属性
         return Web3.solidity_keccak(
-            ['string', 'string', 'string', 'string', 'string', 'string', 'string', 'int'],
+            ['string', 'string', 'string', 'string', 'string', 'string', 'uint256'],
             [
                 token.agentDID, "|", 
                 token.actionIdentifier, "|", 

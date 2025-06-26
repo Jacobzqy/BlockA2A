@@ -213,15 +213,18 @@ def main():
         print(f"❌ 任务签名生成失败: {e}")
         raise
     
+    start = time.time()
     message = task_hash.hex() + "|" + milestone  # 必须与签名时相同
     proof = Proof(
         type="Ed25519Signature2020",
         created=datetime.now(timezone.utc).isoformat(),  # ISO 8601格式
         verificationMethod=did1 + "#keys-1",  # 必须是DID文档中存在的公钥ID
-        # proofValue=base58.b58encode(signature1).decode()  # Base58编码
+        
         proofValue=signature1.hex()  # 使用十六进制字符串
     )
     is_valid = client.verify(did1, proof=proof, message=message.encode('utf-8'))
+    end = time.time()
+    print(f"验证耗时: {end - start:.6f} 秒")
     print(f"✅ 签名验证结果: {is_valid}")
 
     # ==========================================================================

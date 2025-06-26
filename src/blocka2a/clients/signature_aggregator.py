@@ -45,11 +45,12 @@ class SignatureAggregator(BaseClient):
 
             agg_sig_point: bn256.Signature = bn256.aggregate_sigs(g1_signatures)
 
-            end = time.time()
-            print(f"multi-signature generation {end - start:.2f} s")
+            
             x_bytes = agg_sig_point[0].n.to_bytes(32, "big")
             y_bytes = agg_sig_point[1].n.to_bytes(32, "big")
             agg_sig_bytes = BLSSignature(x_bytes + y_bytes)
+            end = time.time()
+            print(f"multi-signature generation {end - start:.6f} s")
 
         except Exception as e:
             raise InvalidParameterError(f"BN254 签名聚合失败: {e}") from e
