@@ -48,7 +48,7 @@ class TaskInitiator(BaseClient):
 
         self._dac = self._load_contract(data_anchoring_contract.get_contract, data_anchoring_address)
 
-    def initiate_task(self, participants: List[str], description: str, deadline: int) -> Tuple[str, bytes]:
+    def initiate_task(self, participants: List[str], description: str, deadline: int) -> Tuple[str, bytes, bytes]:
         """
         Initiate a new task by anchoring its metadata on IPFS and on-chain.
 
@@ -119,4 +119,4 @@ class TaskInitiator(BaseClient):
 
         task_init_end = time.time()
         print(f"Task initiated in {task_init_end - task_init_start:.6f} s")
-        return cid, tx_hash
+        return cid, tx_hash, data_hash

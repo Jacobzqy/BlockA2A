@@ -11,7 +11,7 @@ sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 from src.blocka2a.clients.blocka2a_client import BlockA2AClient
 from src.blocka2a.clients.task_initiator import TaskInitiator
 from src.blocka2a.clients.signature_aggregator import SignatureAggregator
-from src.blocka2a.utils import crypto
+from src.blocka2a.utils import crypto, bn256
 from src.blocka2a.types import PublicKeyEntry, ServiceEntry, Capabilities, PolicyConstraints, Proof
 from src.blocka2a.clients.service_server import ServiceServer
 def main():
@@ -19,10 +19,10 @@ def main():
     rpc_endpoint = "http://127.0.0.1:8545/"
 
     # 本地部署的 AgentGovernanceContract (AGC) 地址
-    agc_address = "0xDc64a140Aa3E981100a9becA4E685f962f0cF6C9"
-    acc_address = "0xa513E6E4b8f2a923D98304ec87F64353C4D5C853"
-    ilc_address = "0x0165878A594ca255338adfa4d48449f69242Eb8F"
-    dac_address = "0x5FC8d32690cc91D4c39d9d3abcBD16989F875707"
+    agc_address = "0x9fE46736679d2D9a65F0992F2272dE9f3c7fa6e0"
+    acc_address = "0x5FC8d32690cc91D4c39d9d3abcBD16989F875707"
+    ilc_address = "0xDc64a140Aa3E981100a9becA4E685f962f0cF6C9"
+    dac_address = "0xCf7Ed3AccA5a467e9e704C703E8D87F634fB0Fc9"
 
     # Hardhat 节点提供的第一个测试账户的私钥
     private_key = "0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80"
@@ -55,8 +55,8 @@ def main():
     print("\n🚀 步骤 2: 生成密钥对...")
     try:
         keys = crypto.generate_key_sets(count=2)  # 生成两组密钥
-        ed_key_info1, bls_key_info1 = keys[0]["ed25519"], keys[0]["bls12_381_g2"]
-        ed_key_info2, bls_key_info2 = keys[1]["ed25519"], keys[1]["bls12_381_g2"]
+        ed_key_info1, bls_key_info1 = keys[0]["ed25519"], keys[0]["bn256_g2"]
+        ed_key_info2, bls_key_info2 = keys[1]["ed25519"], keys[1]["bn256_g2"]
         print(f"✅ Agent 1 密钥生成成功: Ed25519 公钥: {ed_key_info1['public_key_multibase'][:20]}...")
         print(f"✅ Agent 1 BLS 公钥: {bls_key_info1['public_key_multibase'][:20]}...")
         print(f"✅ Agent 2 密钥生成成功: Ed25519 公钥: {ed_key_info2['public_key_multibase'][:20]}...")
@@ -86,7 +86,7 @@ def main():
             ),
             PublicKeyEntry(
                 id=f"{did1}#keys-2",
-                type="Bls12381G1Key2020",
+                type="Bls256G2Key2020",
                 publicKeyMultibase=bls_key_info1["public_key_multibase"]
             )
         ]
@@ -98,7 +98,7 @@ def main():
             ),
             PublicKeyEntry(
                 id=f"{did2}#keys-2",
-                type="Bls12381G1Key2020",
+                type="Bls256G2Key2020",
                 publicKeyMultibase=bls_key_info2["public_key_multibase"]
             )
         ]
@@ -216,11 +216,10 @@ def main():
     start = time.time()
     message = task_hash.hex() + "|" + milestone  # 必须与签名时相同
     proof = Proof(
-        type="Ed25519Signature2020",
+        type="BLS256Signature2020",
         created=datetime.now(timezone.utc).isoformat(),  # ISO 8601格式
-        verificationMethod=did1 + "#keys-1",  # 必须是DID文档中存在的公钥ID
-        
-        proofValue=signature1.hex()  # 使用十六进制字符串
+        verificationMethod=did1 + "#keys-2",  # 必须是DID文档中存在的公钥ID
+        proofValue=base58.b58encode(signature1)
     )
     is_valid = client.verify(did1, proof=proof, message=message.encode('utf-8'))
     end = time.time()
@@ -245,7 +244,7 @@ def main():
         description = "Sample task for testing TaskInitiator with two agents"
         deadline = int((datetime.now() + timedelta(days=7)).timestamp())
 
-        cid, tx_hash = task_initiator.initiate_task(
+        cid, tx_hash, data_hash = task_initiator.initiate_task(
             participants=participants,
             description=description,
             deadline=deadline
@@ -255,12 +254,24 @@ def main():
         print(f"❌ 任务发起失败: {e}")
         raise
 
+    from eth_abi.packed import encode_packed
+
+    def create_payload(data_hash: bytes, milestone: str) -> bytes:
+        """
+        构造与合约 abi.encodePacked 完全一致的字节串。
+        """
+        return encode_packed(
+            ["bytes32", "string", "string"],
+            [data_hash, "|", milestone]
+        )
+
     # ==========================================================================
     # 8. 聚合签名并提交任务验证   TODO: 验证部分代码存在bug
     # ==========================================================================
     print("\n🚀 步骤 8: 聚合签名并提交任务验证...")
+    payload = create_payload(data_hash, milestone)
     try:
-        # task_validation_start = time.time()
+        task_validation_start = time.time()
         aggregator = SignatureAggregator(
             rpc_endpoint=rpc_endpoint,
             data_anchoring_address=dac_address,
@@ -269,22 +280,34 @@ def main():
             default_gas=default_gas
         )
 
-        signatures = [signature1, signature2]
+        signature3 = bn256.sign(
+            payload,
+            2833825224628770647255613288651483959178104459000430758204801703807178990217,
+            b"DAC"
+        )
+        signature4 = bn256.sign(
+            payload,
+            19020176885312313733264572853669371179783749614111895563810414749642828590597,
+            b"DAC"
+        )
+        #signature3 = bn256.deserialize_g1(signature3)
+        #signature4 = bn256.deserialize_g1(signature4)
+        signatures = [signature3, signature4]
         dids = [did1, did2]
         pks_mask = 0x03  # 选择 _blsPubKeyList[0] 和 _blsPubKeyList[1]
 
-        agg_sig = aggregator.aggregate(signatures)
+        agg_sig = bn256.aggregate_sigs(signatures)
 
-        # tx_hash = aggregator.submit_task_validation(
-        #     agg_sig=agg_sig,
-        #     data_hash=task_hash,
-        #     milestone=milestone,
-        #     dids=dids,
-        #     pks_mask=pks_mask
-        # )
-        # task_validation_end = time.time()
-        # print(f"Task validation completed in {(task_validation_end - task_validation_start):.2f} s")
-        # print(f"✅ 任务验证提交成功: tx_hash={tx_hash.hex()[:20]}...")
+        tx_hash = aggregator.submit_task_validation(
+            agg_sig=[agg_sig[0].n, agg_sig[1].n],
+            data_hash=data_hash,
+            milestone=milestone,
+            dids=dids,
+            pks_mask=pks_mask
+        )
+        task_validation_end = time.time()
+        print(f"Task validation completed in {(task_validation_end - task_validation_start):.2f} s")
+        print(f"✅ 任务验证提交成功: tx_hash={tx_hash.hex()[:20]}...")
     except Exception as e:
         print(f"❌ 任务验证提交失败: {e}")
         raise

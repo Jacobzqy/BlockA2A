@@ -1,18 +1,18 @@
-"""
-BlockA2A Utility Sub-package
-============================
+"""Initializes the BlockA2A utilities sub-package.
 
-Common helper modules shipped with the BlockA2A SDK.
+This package bundles common helper modules for the BlockA2A SDK, covering
+cryptographic operations and distributed storage interaction. This `__init__.py`
+file exposes the most important classes and functions from the sub-modules,
+allowing for convenient, direct access.
 
-Modules
--------
-ipfs
-    ``IPFSClient`` – thin wrapper around a local/remote IPFS daemon.
-crypto
-    Ed25519 / BLS12-381 key helpers (see ``blocka2a.utils.crypto``).
-bn256
-    BLS signature helpers over the BN254/alt_bn128 curve.
-
+Available Utilities:
+  - ipfs: Provides the IPFSClient class for simplified interaction with a
+    local or remote IPFS daemon.
+  - crypto: Contains high-level helper functions for generating key pairs
+    for various cryptographic suites like Ed25519 and BLS12-381.
+  - bn256: Offers a complete implementation of the BLS signature scheme over
+    the BN256 (alt_bn128) curve, including types and functions for key
+    generation, signing, verification, and aggregation.
 """
 from .ipfs import IPFSClient
 from .crypto import (
@@ -21,7 +21,7 @@ from .crypto import (
     bls12_381_g2_pubkey_to_coords,
     generate_key_sets,
 )
-# 新增：从 bn256 模块导入相关功能
+# Expose the full BN256 BLS signature suite.
 from .bn256 import (
     SecretKey,
     PublicKey,
@@ -40,20 +40,18 @@ from .bn256 import (
 
 
 __all__ = [
-    # ipfs
+    # from .ipfs
     "IPFSClient",
-    # crypto helpers
+    # from .crypto
     "gen_ed25519",
     "gen_bls12_381_g2",
     "bls12_381_g2_pubkey_to_coords",
     "generate_key_sets",
 
-    # 新增：导出 bn256 的类型和函数
-    # Types
+    # from .bn256
     "SecretKey",
     "PublicKey",
     "Signature",
-    # Functions
     "generate_keypair",
     "compress_g2",
     "decompress_g2",
