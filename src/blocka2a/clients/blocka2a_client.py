@@ -309,14 +309,26 @@ class BlockA2AClient(BaseClient):
         self._verify_proof(document, proof, public_keys)
 
         # Compute SHA-256 of the canonical JSON
-        doc_byes = document.to_json().encode()
-        doc_hash = hashlib.sha256(doc_byes).digest()
+        # doc_byes = document.to_json().encode()
+        # doc_hash = hashlib.sha256(doc_byes).digest()
+
+        doc_dict = document.dict(exclude_none=True)
+        doc_s = json.dumps(doc_dict, separators=(",", ":"), sort_keys=True)
+        doc_bytes = doc_s.encode()
+        doc_hash = hashlib.sha256(doc_bytes).digest()
+
+        # print(f"DEBUG: register_did doc_hash: {doc_hash.hex()}")
+        # print(f"DEBUG: register_did JSON:{type(doc_s)} {doc_s}")
 
         # Upload full document to IPFS
         start = time.time()       # EVALUATION: DID Registration off-chain DID document storage
-        cid = self._ipfs.add_json(document.to_json())
+        # cid = self._ipfs.add_json(document.to_json())
+        # cid = self._ipfs.add_json(doc_s)
+        cid = self._ipfs.add_bytes(doc_bytes)
         end = time.time()
         print(f"off-chain DID document storage {(end - start):.6f} s")
+
+        # print(f"DEBUG: register_did CID: {cid}")
 
 
         # On-chain register
@@ -373,11 +385,17 @@ class BlockA2AClient(BaseClient):
 
         # 3. Integrity check: compute SHA-256 over canonical JSON
         try:
-            doc_json = raw_bytes.decode()
+            doc_json = raw_bytes.decode().strip()
             doc_obj = json.loads(doc_json)
-            canonical = json.dumps(doc_obj, separators=(",", ":"), sort_keys=True).encode()
+            # print(f"DEBUG: verify doc_json:{type(doc_json)} {doc_json}")
+            # canonical = json.dumps(doc_obj, separators=(",", ":"), sort_keys=True).encode()
+            canonical = json.dumps(doc_obj, separators=(",", ":"), sort_keys=True)
+            # print(f"DEBUG: verify canonical:{type(canonical)} {canonical}")
+            canonical = canonical.encode()  # Convert to bytes for hashing
             calc_ha = hashlib.sha256(canonical).digest()
             if calc_ha != ha:
+                # print(f"DEBUG: verify ha: {ha.hex()}")
+                # print(f"DEBUG: verify calc_ha: {calc_ha.hex()}")
                 raise IdentityError("Integrity check failed: hash mismatch")
         except IdentityError:
             raise

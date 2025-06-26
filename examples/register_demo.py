@@ -18,12 +18,12 @@ def main():
     rpc_endpoint = "http://127.0.0.1:8545/"
 
     # 本地部署的 AgentGovernanceContract (AGC) 地址
-    agc_address = "0x5FbDB2315678afecb367f032d93F642f64180aa3"
+    agc_address = "0x9fE46736679d2D9a65F0992F2272dE9f3c7fa6e0"
 
     # 暂时先忽略其他合约，使用占位符。
-    acc_address = agc_address
-    ilc_address = agc_address
-    dac_address = agc_address
+    acc_address = "0x5FC8d32690cc91D4c39d9d3abcBD16989F875707"
+    ilc_address = "0xDc64a140Aa3E981100a9becA4E685f962f0cF6C9"
+    dac_address = "0xCf7Ed3AccA5a467e9e704C703E8D87F634fB0Fc9"
 
     # Hardhat 节点提供的第一个测试账户的私钥
     private_key = "0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80"

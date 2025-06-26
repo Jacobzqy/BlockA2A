@@ -83,7 +83,8 @@ class TaskInitiator(BaseClient):
 
         # 2. Serialize and hash
         try:
-            json_str = json.dumps(meta, separators=(",", ":"), sort_keys=True)
+            meta_dict = meta.dict()
+            json_str = json.dumps(meta_dict, separators=(",", ":"), sort_keys=True)
         except Exception as e:
             raise InvalidParameterError(f"Failed to serialize TaskMetadata: {e}") from e
 
@@ -97,7 +98,7 @@ class TaskInitiator(BaseClient):
             start = time.time()     # EVALUATION: task off-chain data anchoring
             cid = self._ipfs.add_json(json_str)
             end = time.time()
-            print(f"task off-chain data anchoring {end - start:.2f} s")
+            print(f"task off-chain data anchoring {end - start:.6f} s")
         except Exception as e:
             raise NetworkError(f"IPFS upload failed: {e}") from e
 
@@ -112,10 +113,10 @@ class TaskInitiator(BaseClient):
                 "initiated",
             )
             end = time.time()
-            print(f"task on-chain anchoring {end - start:.2f} s")
+            print(f"task on-chain anchoring {end - start:.6f} s")
         except Exception as e:
             raise ContractError(f"anchor transaction failed: {e}") from e
 
         task_init_end = time.time()
-        print(f"Task initiated in {task_init_end - task_init_start:.2f} s")
+        print(f"Task initiated in {task_init_end - task_init_start:.6f} s")
         return cid, tx_hash
