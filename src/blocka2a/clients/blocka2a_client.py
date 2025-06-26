@@ -3,7 +3,7 @@ import time
 import base58
 import json
 import multibase
-from Crypto.SelfTest.Protocol.test_ecdh import public_key
+# from Crypto.SelfTest.Protocol.test_ecdh import public_key
 
 from py_ecc.bls.g2_primitives import pubkey_to_G1
 from web3 import Web3
@@ -394,14 +394,15 @@ class BlockA2AClient(BaseClient):
         except Exception as e:
             raise IdentityError(f"Failed to parse DIDDocument: {e}") from e
 
-        public_keys = document.public_keys
-        signer_public_key_entry = next((key for key in public_keys if key.id == proof.verification_method), None)
+        public_keys = document.publicKey
+        signer_public_key_entry = next((key for key in public_keys if key.id == proof.verificationMethod), None)
 
         if not signer_public_key_entry:
+            print(public_keys)
             raise IdentityError(
-                f"在 DID 文档中未找到 ID 为 '{proof.verification_method}' 的公钥，无法验证 proof。"
+                f"在 DID 文档中未找到 ID 为 '{proof.verificationMethod}' 的公钥，无法验证 proof。"
             )
-        pubkey = crypto.multibase_to_raw_public_key(signer_public_key_entry.public_key)
+        pubkey = crypto.multibase_to_raw_public_key(signer_public_key_entry.publicKeyMultibase)
 
         return crypto.verify(proof, message, pubkey)
 
@@ -430,7 +431,7 @@ class BlockA2AClient(BaseClient):
             secret_key = bn256.SecretKey(bls_sk)
 
             # 使用 bn256 库对消息进行签名
-            sig_point: bn256.Signature = bn256.sign(msg, secret_key, domain=bytes("DAC"))
+            sig_point: bn256.Signature = bn256.sign(msg, secret_key, domain=b"DAC")
 
             # 签名结果是一个 PointG1 元组 (FQ, FQ)，需要将其序列化为字节流。
             # 采用未压缩格式：32字节x坐标 || 32字节y坐标
@@ -441,7 +442,7 @@ class BlockA2AClient(BaseClient):
 
         except Exception as e:
             # 捕获签名过程中可能出现的任何错误
-            raise RuntimeError(f"生成 BN254 签名失败: {e}") from e
+            raise RuntimeError(f"生成 BN256 签名失败: {e}") from e
 
         end = time.time()
         print(f"signature generation {(end - start):.6f} s")

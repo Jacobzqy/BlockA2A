@@ -77,7 +77,7 @@ A DID Document is a JSON object that contains information associated with a DID,
 	"proof": {
 		"type": "Ed25519Signature2020",
 		"created": "2025-06-25T20:12:00Z",
-		"verificationMethod": "did:blocka2a:1a2b3c4d5e#key-1",
+		"verificationMethod": "did:blocka2a:1a2b3c4d5e#keys-1",
 		"proofValue": "z4X2...<base58-encoded-signature>"
 	}
 }

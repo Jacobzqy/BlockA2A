@@ -59,8 +59,8 @@ async function main() {
   const AccessControlContractFactory = await hre.ethers.getContractFactory("AccessControlContract", {
     libraries: {
       // 这里的键名 "EnvironmentalPolicyLogic" 必须与合约文件名完全一致
-      // EnvironmentalPolicyLogic: environmentalPolicyLogic.address,
-      // TemporalPolicyLogic: temporalPolicyLogic.address,
+      EnvironmentalPolicyLogic: environmentalPolicyLogic.address,
+      TemporalPolicyLogic: temporalPolicyLogic.address,
 
       // 注意：如果您的 ACC 还依赖其他库，也需要在这里一并链接
       // 例如: "DIDAttributePolicyLogic": didAttributePolicyLogic.address
