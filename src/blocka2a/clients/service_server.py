@@ -1,12 +1,10 @@
-from argparse import Action
-from typing import Optional, Dict, List, Set
+from typing import List, Set
 
 from web3 import Web3
-from web3.contract import Contract
 
 from src.blocka2a.clients import ContractError, BaseClient, IdentityError, InvalidParameterError
 from src.blocka2a.contracts import access_control_contract
-from src.blocka2a.types import AccessToken, Policy, Proof
+from src.blocka2a.types import AccessToken, Policy
 
 
 class ServiceServer(BaseClient):
@@ -90,7 +88,8 @@ class ServiceServer(BaseClient):
         self,
         action_identifier: str,
         policy: Policy,
-        proof: Proof
+        agg_sig: List[int],
+        pks_mask: int
     ) -> bytes:
         if not self._acct:
             raise IdentityError("A private key is required to register a policy.")
@@ -103,7 +102,8 @@ class ServiceServer(BaseClient):
             "actionIdentifier": action_identifier,
             "policyTypeStr": policy.policy_type,
             "policyParameters": policy.policy_param,
-            "proof": proof
+            "aggSig": agg_sig,
+            "pksMask": pks_mask
         }
 
         try:
@@ -119,7 +119,8 @@ class ServiceServer(BaseClient):
         self,
         action_identifier: str,
         policy: Policy,
-        proof: Proof
+        agg_sig: List[int],
+        pks_mask: int
     ) -> bytes:
         if not self._acct:
             raise IdentityError("A private key is required to remove a policy.")
@@ -132,7 +133,8 @@ class ServiceServer(BaseClient):
             "actionIdentifier": action_identifier,
             "policyTypeStr": policy.policy_type,
             "policyParameters": policy.policy_param,
-            "proof": proof
+            "aggSig": agg_sig,
+            "pksMask": pks_mask
         }
 
         try:

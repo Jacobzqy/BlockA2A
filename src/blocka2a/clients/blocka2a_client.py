@@ -2,9 +2,12 @@ import hashlib
 import time
 import base58
 import json
+import multibase
+from Crypto.SelfTest.Protocol.test_ecdh import public_key
 
 from py_ecc.bls.g2_primitives import pubkey_to_G1
 from web3 import Web3
+from src.blocka2a.utils import crypto, bn256
 from typing import Optional, List, Any, Tuple
 from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PublicKey
 from cryptography.exceptions import InvalidSignature
@@ -15,6 +18,7 @@ from src.blocka2a.clients.errors import InvalidParameterError, IdentityError, Co
 from src.blocka2a.types import PublicKeyEntry, ServiceEntry, Capabilities, PolicyConstraints, Proof, DIDDocument, \
     BLSPubkey, BLSSignature, BLSPrivateKey, AccessToken
 from src.blocka2a.contracts import access_control_contract, interaction_logic_contract, agent_governance_contract, data_anchoring_contract
+
 
 class BlockA2AClient(BaseClient):
     """BlockA2A SDK client that handles DID operations, data anchoring, and task signatures."""
@@ -59,42 +63,6 @@ class BlockA2AClient(BaseClient):
         self._ilc = self._load_contract(interaction_logic_contract.get_contract, ilc_address)
         self._agc = self._load_contract(agent_governance_contract.get_contract, agc_address)
         self._dac = self._load_contract(data_anchoring_contract.get_contract, dac_address)
-
-    @classmethod
-    def _convert_bls_pubkeys(cls, public_keys: list[PublicKeyEntry]) -> list[list[int]]:
-        """
-        Convert a list of PublicKeyEntry (Bls12381G1Key2020) into
-        a list of uint256[4] arrays for on-chain registration.
-
-        Args:
-            public_keys: List of PublicKeyEntry with type "Bls12381G1Key2020".
-
-        Returns:
-            A list of [x_low, x_high, y_low, y_high] integers for each key.
-
-        Raises:
-            InvalidParameterError: If a decoded key is not 48 bytes.
-        """
-        mask = (1 << 256) - 1
-        bls_pubkeys: list[list[int]] = []
-        for public_key in public_keys:
-            raw_bytes = base58.b58decode(public_key.publicKeyMultibase)
-            if len(raw_bytes) != 48:
-                raise InvalidParameterError(
-                    f"BLS public key '{public_key.id}' length is {len(raw_bytes)}, expected 48 bytes."
-                )
-            bls_raw: BLSPubkey = BLSPubkey(raw_bytes)
-            x_fq, y_fq, _ = pubkey_to_G1(bls_raw)
-            x_int, y_int = int(x_fq.n), int(y_fq.n)
-
-            x_low = x_int & mask
-            x_high = x_int >> 256
-            y_low = y_int & mask
-            y_high = y_int >> 256
-
-            bls_pubkeys.append([x_low, y_low, x_high, y_high])
-
-        return bls_pubkeys
 
     @classmethod
     def _verify_proof(cls, document: DIDDocument, proof: Optional[Proof], public_keys: List[PublicKeyEntry]) -> None:
@@ -296,6 +264,26 @@ class BlockA2AClient(BaseClient):
         if not public_keys:
             raise InvalidParameterError("public_keys list cannot be empty")
 
+        if proof is not None:
+            signer_public_key_entry = next((key for key in public_keys if key.id == proof.verification_method), None)
+
+            if not signer_public_key_entry:
+                raise IdentityError(
+                    f"在 DID 文档中未找到 ID 为 '{proof.verification_method}' 的公钥，无法验证 proof。"
+                )
+            pubkey = crypto.multibase_to_raw_public_key(signer_public_key_entry.public_key)
+
+            document_for_verify = DIDDocument(
+                id=did,
+                publicKey=public_keys,
+                service=services,
+                capabilities=capabilities,
+                policy_constraints=policy_constraints,
+                proof=None
+            ).to_json().encode()
+
+            crypto.verify(proof, document_for_verify, pubkey)
+
         # Build DIDDocument and verify proof if present
         document = DIDDocument(
             id = did,
@@ -305,8 +293,6 @@ class BlockA2AClient(BaseClient):
             policy_constraints = policy_constraints,
             proof = proof
         )
-
-        self._verify_proof(document, proof, public_keys)
 
         # Compute SHA-256 of the canonical JSON
         # doc_byes = document.to_json().encode()
@@ -345,7 +331,7 @@ class BlockA2AClient(BaseClient):
 
         return tx_hash, cid
 
-    def verify(self, did: str, proof: Proof) -> bool:
+    def verify(self, did: str, proof: Proof, message: Any) -> bool:
         """
         Verify a DIDDocument by fetching both documentHash and CID from the
         AgentGovernanceContract, then checking integrity and proof.
@@ -408,14 +394,16 @@ class BlockA2AClient(BaseClient):
         except Exception as e:
             raise IdentityError(f"Failed to parse DIDDocument: {e}") from e
 
-        try:
-            self._verify_proof(document, proof, document.publicKey)
-        except IdentityError:
-            raise
-        except Exception as e:
-            raise IdentityError(f"Proof verification error: {e}") from e
+        public_keys = document.public_keys
+        signer_public_key_entry = next((key for key in public_keys if key.id == proof.verification_method), None)
 
-        return True
+        if not signer_public_key_entry:
+            raise IdentityError(
+                f"在 DID 文档中未找到 ID 为 '{proof.verification_method}' 的公钥，无法验证 proof。"
+            )
+        pubkey = crypto.multibase_to_raw_public_key(signer_public_key_entry.public_key)
+
+        return crypto.verify(proof, message, pubkey)
 
     @classmethod
     def sign_task(cls, bls_sk: BLSPrivateKey, task_hash: bytes, milestone: str) -> BLSSignature:
@@ -435,8 +423,26 @@ class BlockA2AClient(BaseClient):
 
         start = time.time()  # EVALUATION: signature generation
         key = task_hash.hex() + "|" + milestone
-        msg = key.encode()
-        sig = G2ProofOfPossession.Sign(bls_sk, msg)
+        msg = key.encode('utf-8')
+
+        try:
+            # 从整数私钥创建 bn256.SecretKey 对象
+            secret_key = bn256.SecretKey(bls_sk)
+
+            # 使用 bn256 库对消息进行签名
+            sig_point: bn256.Signature = bn256.sign(msg, secret_key, domain=bytes("DAC"))
+
+            # 签名结果是一个 PointG1 元组 (FQ, FQ)，需要将其序列化为字节流。
+            # 采用未压缩格式：32字节x坐标 || 32字节y坐标
+            x_bytes = sig_point[0].n.to_bytes(32, "big")
+            y_bytes = sig_point[1].n.to_bytes(32, "big")
+
+            sig = BLSSignature(x_bytes + y_bytes)
+
+        except Exception as e:
+            # 捕获签名过程中可能出现的任何错误
+            raise RuntimeError(f"生成 BN254 签名失败: {e}") from e
+
         end = time.time()
         print(f"signature generation {(end - start):.6f} s")
         return sig

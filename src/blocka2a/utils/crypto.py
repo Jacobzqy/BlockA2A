@@ -269,6 +269,39 @@ def verify(
 
     return True
 
+def multibase_to_raw_public_key(
+    mb: str
+) -> bytes:
+    """Convert a Base58btc multibase-encoded public key into raw key bytes.
+
+    This will:
+      1. Decode the multibase string (e.g. "z…") into bytes.
+      2. Strip off the multicodec prefix (_MB_ED_PREFIX / _MB_BLS_PREFIX / _MB_BN256_PREFIX).
+      3. Return the remaining raw public-key bytes.
+
+    Args:
+        mb: A Base58btc multibase string that encodes
+            multicodec-prefix + public key.
+
+    Returns:
+        The raw public key bytes (32 bytes for Ed25519,
+        96 bytes for BLS12-381/G2, 64 bytes for BN256/G2).
+
+    Raises:
+        ValueError: If the decoded data does not start with a known prefix.
+    """
+    data = multibase.decode(mb)
+    if data.startswith(_MB_ED_PREFIX):
+        return data[len(_MB_ED_PREFIX):]
+    if data.startswith(_MB_BLS_PREFIX):
+        return data[len(_MB_BLS_PREFIX):]
+    if data.startswith(_MB_BN256_PREFIX):
+        return data[len(_MB_BN256_PREFIX):]
+
+    # 如果都不匹配，则抛错
+    raise ValueError(f"Unknown multicodec prefix in multibase data: {data[:2].hex()}")
+
+
 __all__ = [
     "gen_ed25519",
     "gen_bls12_381_g2",
@@ -278,4 +311,5 @@ __all__ = [
     "generate_key_sets",
     "sign",
     "verify",
+    "multibase_to_raw_public_key",
 ]

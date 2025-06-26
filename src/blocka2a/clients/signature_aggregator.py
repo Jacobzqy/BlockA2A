@@ -3,9 +3,8 @@ import time
 from src.blocka2a.clients.errors import InvalidParameterError, ContractError
 from src.blocka2a.types import BLSSignature
 from src.blocka2a.clients.base_client import BaseClient
-from py_ecc.bls import G2ProofOfPossession
-from py_ecc.bls.g2_primitives import signature_to_G2
 from src.blocka2a.contracts import data_anchoring_contract
+from src.blocka2a.utils import bn256
 
 class SignatureAggregator(BaseClient):
     # BLS12-381 模数
@@ -32,49 +31,57 @@ class SignatureAggregator(BaseClient):
         if not sigs:
             raise InvalidParameterError("No signatures provided for aggregation")
         try:
-            start = time.time()
-            agg_sig: BLSSignature = G2ProofOfPossession.Aggregate(sigs)
-            end = time.time()
-            print(f"multi-signature generation {(end - start):.2f} s")
-        except Exception as e:
-            raise InvalidParameterError(f"BLS aggregation validation failed: {e}") from e
-        return agg_sig
+            start = time.time()      # EVALUATION: Multi-signature generation
 
-    def bls_signature_to_uint256x2(self, sig: BLSSignature) -> List[int]:
+            g1_signatures = []
+            for sig_bytes in sigs:
+                if len(sig_bytes) != 64:
+                    raise InvalidParameterError(f"无效的 G1 签名长度：应为 64，实际为 {len(sig_bytes)}")
+
+                x = int.from_bytes(sig_bytes[:32], "big")
+                y = int.from_bytes(sig_bytes[32:], "big")
+                point = (bn256.FQ(x), bn256.FQ(y))
+                g1_signatures.append(bn256.Signature(point))
+
+            agg_sig_point: bn256.Signature = bn256.aggregate_sigs(g1_signatures)
+
+            end = time.time()
+            print(f"multi-signature generation {end - start:.2f} s")
+            x_bytes = agg_sig_point[0].n.to_bytes(32, "big")
+            y_bytes = agg_sig_point[1].n.to_bytes(32, "big")
+            agg_sig_bytes = BLSSignature(x_bytes + y_bytes)
+
+        except Exception as e:
+            raise InvalidParameterError(f"BN254 签名聚合失败: {e}") from e
+
+        return agg_sig_bytes
+
+    @staticmethod
+    def bls_signature_to_uint256x2(sig: BLSSignature) -> List[int]:
         """
-        Convert a 96-byte BLS signature into a Solidity uint256[2] representing
-        the G2 point x-coordinates.
+        将一个 64 字节的 BN254 G1 签名转换为 Solidity 的 uint256[2] 格式，
+        代表 G1 点的坐标。
 
         Args:
-            sig: BLSSignature bytes (96 bytes).
+            sig: BLSSignature 字节流 (64 字节)。
 
         Returns:
-            A list [x0, x1], where each is an uint256 limb of the FQ2 x-coordinate.
+            一个列表 [x, y]，其中每个元素都是一个 uint256。
 
         Raises:
-            InvalidParameterError: If signature decoding fails.
+            InvalidParameterError: 如果签名格式解码失败或长度不正确。
         """
-        try:
-            g2_point = signature_to_G2(BLSSignature(sig))
-            print(f"DEBUG: g2_point: {type(g2_point)}, {g2_point}")
+        if len(sig) != 64:
+            raise InvalidParameterError(f"无效的 G1 签名长度，应为 64 字节，实际为 {len(sig)}")
 
-            if len(g2_point) == 3:
-                x_fq2, y_fq2, _ = g2_point
-                if hasattr(x_fq2, 'coeffs'):
-                    x0 = int(x_fq2.coeffs[0].n if hasattr(x_fq2.coeffs[0], 'n') else x_fq2.coeffs[0])
-                    x1 = int(x_fq2.coeffs[1].n if hasattr(x_fq2.coeffs[1], 'n') else x_fq2.coeffs[1])
-                else:
-                    x0, x1 = x_fq2
-                # 模运算确保在 uint256 范围内
-                x0 = x0 % self.BLS12_381_P
-                x1 = x1 % self.BLS12_381_P
-                print(f"DEBUG: x0={x0}, x1={x1}")
-                print(f"DEBUG: x0 bit length: {x0.bit_length()}, x1 bit length: {x1.bit_length()}")
-                return [x0, x1]
-            else:
-                raise InvalidParameterError("Unexpected G2 point format")
+        try:
+            # 未压缩的 G1 点是 (x, y)
+            x = int.from_bytes(sig[:32], "big")
+            y = int.from_bytes(sig[32:], "big")
         except Exception as e:
-            raise InvalidParameterError(f"Invalid BLS signature format: {e}") from e
+            raise InvalidParameterError(f"无效的 G1 签名格式: {e}") from e
+
+        return [x, y]
 
     def submit_task_validation(
         self,
@@ -84,13 +91,31 @@ class SignatureAggregator(BaseClient):
         dids: List[str],
         pks_mask: int
     ) -> bytes:
+        """
+        在本地验证 BLS 聚合签名，然后将其 uint256[2] 表示提交到
+        DataAnchoringContract 进行更新。
+
+        Args:
+            agg_sig: `aggregate()` 方法返回的 BLSSignature (64 字节)。
+            data_hash: 任务元数据的 32 字节 SHA-256 哈希。
+            milestone: 里程碑标识符，例如 "milestone-X"。
+            dids: 参与签名的密钥所属的 DID 列表。
+
+        Returns:
+            交易哈希 (HexBytes)。
+
+        Raises:
+            InvalidParameterError: 如果输入格式错误。
+            ContractError: 如果链上更新调用失败。
+        """
         if not agg_sig or not isinstance(agg_sig, (bytes, bytearray)):
             raise InvalidParameterError("aggregate_signature must be BLSSignature")
         print(f"DEBUG: agg_sig length: {len(agg_sig)}, value: {agg_sig.hex()}")
 
-        start = time.time()
+        # 将 G1 签名转换为 uint256[2] G1 坐标
         agg_sig_point = self.bls_signature_to_uint256x2(agg_sig)
-        print(f"DEBUG: agg_sig_point: {agg_sig_point}")
+
+        # Submit on-chain: update(uint256[4], bytes32, string, string[])
         try:
             tx_hash = self._send_tx(
                 self._dac.functions.update,

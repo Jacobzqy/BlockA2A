@@ -1,4 +1,5 @@
 import pytest
+import multibase  # 导入以构造无效前缀的测试用例
 from src.blocka2a.utils import crypto
 
 # 导入底层 bn256 库以进行更深入的往返验证
@@ -6,7 +7,7 @@ from src.blocka2a.utils import bn256 as bls_bn256
 from py_ecc.bn128 import FQ, FQ2, G2, multiply
 
 
-# --- 测试用例 ---
+# --- 已有测试用例 (无改动) ---
 
 def test_gen_ed25519_format():
     """测试 Ed25519 密钥生成函数的输出格式"""
@@ -123,3 +124,41 @@ def test_ed25519_sign_verify_end_to_end():
     # 5. 验证 (否定性测试)
     is_invalid = crypto.verify(proof, "a different message", pub_key_hex)
     assert is_invalid is False, "使用错误消息的验证应失败"
+
+# --- 新增的测试用例 ---
+
+def test_multibase_to_raw_public_key():
+    """
+    测试 multibase 解码和针对所有支持的密钥类型进行前缀剥离的功能。
+    """
+    # 场景 1: 测试 Ed25519 密钥
+    ed_keys = crypto.gen_ed25519()
+    raw_ed_pk = crypto.multibase_to_raw_public_key(ed_keys["public_key_multibase"])
+    assert raw_ed_pk.hex() == ed_keys["public_key_hex"]
+    assert len(raw_ed_pk) == 32
+
+    # 场景 2: 测试 BLS12-381 密钥
+    bls_keys = crypto.gen_bls12_381_g2()
+    raw_bls_pk = crypto.multibase_to_raw_public_key(bls_keys["public_key_multibase"])
+    assert raw_bls_pk.hex() == bls_keys["public_key_hex"]
+    assert len(raw_bls_pk) == 96
+
+    # 场景 3: 测试 BN256 密钥
+    bn256_keys = crypto.gen_bn256_g2()
+    raw_bn256_pk = crypto.multibase_to_raw_public_key(bn256_keys["public_key_multibase"])
+    assert raw_bn256_pk.hex() == bn256_keys["public_key_hex"]
+    assert len(raw_bn256_pk) == 64
+
+    # 场景 4: 测试未知的 multicodec 前缀
+    unknown_prefix = b'\xff\xee'
+    # 使用一个真实的密钥数据，但加上一个伪造的前缀
+    raw_key_data = bytes.fromhex(ed_keys["public_key_hex"])
+    fake_multibase_str = multibase.encode("base58btc", unknown_prefix + raw_key_data).decode('ascii')
+
+    with pytest.raises(ValueError, match="Unknown multicodec prefix"):
+        crypto.multibase_to_raw_public_key(fake_multibase_str)
+
+    # 场景 5: 测试格式错误的非 multibase 字符串
+    with pytest.raises(ValueError):
+        # 这个字符串没有以有效的 multibase 前缀字符（如 'z'）开头
+        crypto.multibase_to_raw_public_key("this_is_not_a_multibase_string")
