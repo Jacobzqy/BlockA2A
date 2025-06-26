@@ -1,8 +1,8 @@
 {
   "_format": "hh-sol-cache-2",
   "files": {
-    "/home/zlp/BlockA2A/contracts/interfaces/IACC.sol": {
-      "lastModificationDate": 1750830080346,
+    "/Users/zhanqiuyang/learn/research/BlockA2A/contracts/interfaces/IACC.sol": {
+      "lastModificationDate": 1750812446680,
       "contentHash": "8027aeb83da05f805183202305051bd1",
       "sourceName": "contracts/interfaces/IACC.sol",
       "solcConfig": {
@@ -38,391 +38,8 @@
         "IACC"
       ]
     },
-    "/home/zlp/BlockA2A/contracts/lib/TemporalPolicyLogic.sol": {
-      "lastModificationDate": 1750830080346,
-      "contentHash": "84ed6b1e3fc61e2cc86bb49595a30951",
-      "sourceName": "contracts/lib/TemporalPolicyLogic.sol",
-      "solcConfig": {
-        "version": "0.8.24",
-        "settings": {
-          "viaIR": true,
-          "optimizer": {
-            "enabled": true,
-            "runs": 1000000
-          },
-          "evmVersion": "paris",
-          "outputSelection": {
-            "*": {
-              "*": [
-                "abi",
-                "evm.bytecode",
-                "evm.deployedBytecode",
-                "evm.methodIdentifiers",
-                "metadata"
-              ],
-              "": [
-                "ast"
-              ]
-            }
-          }
-        }
-      },
-      "imports": [],
-      "versionPragmas": [
-        "^0.8.20"
-      ],
-      "artifacts": [
-        "TemporalPolicyLogic"
-      ]
-    },
-    "/home/zlp/BlockA2A/contracts/lib/DIDAttributePolicyLogic.sol": {
-      "lastModificationDate": 1750830080346,
-      "contentHash": "bc580681fd48ef699553f94e74d7e907",
-      "sourceName": "contracts/lib/DIDAttributePolicyLogic.sol",
-      "solcConfig": {
-        "version": "0.8.24",
-        "settings": {
-          "viaIR": true,
-          "optimizer": {
-            "enabled": true,
-            "runs": 1000000
-          },
-          "evmVersion": "paris",
-          "outputSelection": {
-            "*": {
-              "*": [
-                "abi",
-                "evm.bytecode",
-                "evm.deployedBytecode",
-                "evm.methodIdentifiers",
-                "metadata"
-              ],
-              "": [
-                "ast"
-              ]
-            }
-          }
-        }
-      },
-      "imports": [],
-      "versionPragmas": [
-        "^0.8.20"
-      ],
-      "artifacts": [
-        "DIDAttributePolicyLogic"
-      ]
-    },
-    "/home/zlp/BlockA2A/contracts/lib/EnvironmentalPolicyLogic.sol": {
-      "lastModificationDate": 1750830080346,
-      "contentHash": "025140ba51abb3f85d6d165f1b4ac7bd",
-      "sourceName": "contracts/lib/EnvironmentalPolicyLogic.sol",
-      "solcConfig": {
-        "version": "0.8.24",
-        "settings": {
-          "viaIR": true,
-          "optimizer": {
-            "enabled": true,
-            "runs": 1000000
-          },
-          "evmVersion": "paris",
-          "outputSelection": {
-            "*": {
-              "*": [
-                "abi",
-                "evm.bytecode",
-                "evm.deployedBytecode",
-                "evm.methodIdentifiers",
-                "metadata"
-              ],
-              "": [
-                "ast"
-              ]
-            }
-          }
-        }
-      },
-      "imports": [],
-      "versionPragmas": [
-        "^0.8.20"
-      ],
-      "artifacts": [
-        "EnvironmentalPolicyLogic"
-      ]
-    },
-    "/home/zlp/BlockA2A/contracts/interfaces/IAGC.sol": {
-      "lastModificationDate": 1750830080346,
-      "contentHash": "7c1bc9d14815c4444a480a186d39cb32",
-      "sourceName": "contracts/interfaces/IAGC.sol",
-      "solcConfig": {
-        "version": "0.8.24",
-        "settings": {
-          "viaIR": true,
-          "optimizer": {
-            "enabled": true,
-            "runs": 1000000
-          },
-          "evmVersion": "paris",
-          "outputSelection": {
-            "*": {
-              "*": [
-                "abi",
-                "evm.bytecode",
-                "evm.deployedBytecode",
-                "evm.methodIdentifiers",
-                "metadata"
-              ],
-              "": [
-                "ast"
-              ]
-            }
-          }
-        }
-      },
-      "imports": [],
-      "versionPragmas": [
-        "^0.8.20"
-      ],
-      "artifacts": [
-        "IAGC"
-      ]
-    },
-    "/home/zlp/BlockA2A/contracts/lib/BLS.sol": {
-      "lastModificationDate": 1750830080346,
-      "contentHash": "93abd906dfb9adb3b9aabcbddac16df5",
-      "sourceName": "contracts/lib/BLS.sol",
-      "solcConfig": {
-        "version": "0.8.24",
-        "settings": {
-          "viaIR": true,
-          "optimizer": {
-            "enabled": true,
-            "runs": 1000000
-          },
-          "evmVersion": "paris",
-          "outputSelection": {
-            "*": {
-              "*": [
-                "abi",
-                "evm.bytecode",
-                "evm.deployedBytecode",
-                "evm.methodIdentifiers",
-                "metadata"
-              ],
-              "": [
-                "ast"
-              ]
-            }
-          }
-        }
-      },
-      "imports": [
-        "./ModExp.sol"
-      ],
-      "versionPragmas": [
-        ">=0.8.23"
-      ],
-      "artifacts": [
-        "BLS"
-      ]
-    },
-    "/home/zlp/BlockA2A/contracts/lib/BN256G2.sol": {
-      "lastModificationDate": 1750830080346,
-      "contentHash": "8d4637b75b275ff95ca1620c2cc8ac7c",
-      "sourceName": "contracts/lib/BN256G2.sol",
-      "solcConfig": {
-        "version": "0.8.24",
-        "settings": {
-          "viaIR": true,
-          "optimizer": {
-            "enabled": true,
-            "runs": 1000000
-          },
-          "evmVersion": "paris",
-          "outputSelection": {
-            "*": {
-              "*": [
-                "abi",
-                "evm.bytecode",
-                "evm.deployedBytecode",
-                "evm.methodIdentifiers",
-                "metadata"
-              ],
-              "": [
-                "ast"
-              ]
-            }
-          }
-        }
-      },
-      "imports": [],
-      "versionPragmas": [
-        "^0.8.13"
-      ],
-      "artifacts": [
-        "BN256G2"
-      ]
-    },
-    "/home/zlp/BlockA2A/contracts/lib/ModExp.sol": {
-      "lastModificationDate": 1750830080346,
-      "contentHash": "8061c4c4419f4e9344355999992dc495",
-      "sourceName": "contracts/lib/ModExp.sol",
-      "solcConfig": {
-        "version": "0.8.24",
-        "settings": {
-          "viaIR": true,
-          "optimizer": {
-            "enabled": true,
-            "runs": 1000000
-          },
-          "evmVersion": "paris",
-          "outputSelection": {
-            "*": {
-              "*": [
-                "abi",
-                "evm.bytecode",
-                "evm.deployedBytecode",
-                "evm.methodIdentifiers",
-                "metadata"
-              ],
-              "": [
-                "ast"
-              ]
-            }
-          }
-        }
-      },
-      "imports": [],
-      "versionPragmas": [
-        ">=0.8.23"
-      ],
-      "artifacts": [
-        "ModexpInverse",
-        "ModexpSqrt"
-      ]
-    },
-    "/home/zlp/BlockA2A/contracts/main/InteractionLogicContract.sol": {
-      "lastModificationDate": 1750830080346,
-      "contentHash": "8842f97f9620337341f701beefd804d7",
-      "sourceName": "contracts/main/InteractionLogicContract.sol",
-      "solcConfig": {
-        "version": "0.8.24",
-        "settings": {
-          "viaIR": true,
-          "optimizer": {
-            "enabled": true,
-            "runs": 1000000
-          },
-          "evmVersion": "paris",
-          "outputSelection": {
-            "*": {
-              "*": [
-                "abi",
-                "evm.bytecode",
-                "evm.deployedBytecode",
-                "evm.methodIdentifiers",
-                "metadata"
-              ],
-              "": [
-                "ast"
-              ]
-            }
-          }
-        }
-      },
-      "imports": [
-        "../lib/BLS.sol",
-        "../lib/BN256G2.sol"
-      ],
-      "versionPragmas": [
-        "^0.8.20"
-      ],
-      "artifacts": [
-        "InteractionLogicContract"
-      ]
-    },
-    "/home/zlp/BlockA2A/contracts/main/DataAnchoringContract.sol": {
-      "lastModificationDate": 1750830080346,
-      "contentHash": "0fe31edb2ac6e3177f047edfef081de7",
-      "sourceName": "contracts/main/DataAnchoringContract.sol",
-      "solcConfig": {
-        "version": "0.8.24",
-        "settings": {
-          "viaIR": true,
-          "optimizer": {
-            "enabled": true,
-            "runs": 1000000
-          },
-          "evmVersion": "paris",
-          "outputSelection": {
-            "*": {
-              "*": [
-                "abi",
-                "evm.bytecode",
-                "evm.deployedBytecode",
-                "evm.methodIdentifiers",
-                "metadata"
-              ],
-              "": [
-                "ast"
-              ]
-            }
-          }
-        }
-      },
-      "imports": [
-        "../lib/BLS.sol",
-        "../lib/BN256G2.sol"
-      ],
-      "versionPragmas": [
-        "^0.8.20"
-      ],
-      "artifacts": [
-        "DataAnchoringContract"
-      ]
-    },
-    "/home/zlp/BlockA2A/contracts/main/AgentGovernanceContract.sol": {
-      "lastModificationDate": 1750830080346,
-      "contentHash": "39b39d4ca680269455273b9fd6e4704d",
-      "sourceName": "contracts/main/AgentGovernanceContract.sol",
-      "solcConfig": {
-        "version": "0.8.24",
-        "settings": {
-          "viaIR": true,
-          "optimizer": {
-            "enabled": true,
-            "runs": 1000000
-          },
-          "evmVersion": "paris",
-          "outputSelection": {
-            "*": {
-              "*": [
-                "abi",
-                "evm.bytecode",
-                "evm.deployedBytecode",
-                "evm.methodIdentifiers",
-                "metadata"
-              ],
-              "": [
-                "ast"
-              ]
-            }
-          }
-        }
-      },
-      "imports": [
-        "../interfaces/IAGC.sol",
-        "../lib/BLS.sol",
-        "../lib/BN256G2.sol"
-      ],
-      "versionPragmas": [
-        "^0.8.20"
-      ],
-      "artifacts": [
-        "AgentGovernanceContract"
-      ]
-    },
-    "/home/zlp/BlockA2A/contracts/main/AccessControlContract.sol": {
-      "lastModificationDate": 1750902173577,
+    "/Users/zhanqiuyang/learn/research/BlockA2A/contracts/main/AccessControlContract.sol": {
+      "lastModificationDate": 1750834644573,
       "contentHash": "81cdf2ae175e6fcdcaf37c555e283d93",
       "sourceName": "contracts/main/AccessControlContract.sol",
       "solcConfig": {
@@ -464,6 +81,389 @@
       ],
       "artifacts": [
         "AccessControlContract"
+      ]
+    },
+    "/Users/zhanqiuyang/learn/research/BlockA2A/contracts/lib/TemporalPolicyLogic.sol": {
+      "lastModificationDate": 1748940574380,
+      "contentHash": "84ed6b1e3fc61e2cc86bb49595a30951",
+      "sourceName": "contracts/lib/TemporalPolicyLogic.sol",
+      "solcConfig": {
+        "version": "0.8.24",
+        "settings": {
+          "viaIR": true,
+          "optimizer": {
+            "enabled": true,
+            "runs": 1000000
+          },
+          "evmVersion": "paris",
+          "outputSelection": {
+            "*": {
+              "*": [
+                "abi",
+                "evm.bytecode",
+                "evm.deployedBytecode",
+                "evm.methodIdentifiers",
+                "metadata"
+              ],
+              "": [
+                "ast"
+              ]
+            }
+          }
+        }
+      },
+      "imports": [],
+      "versionPragmas": [
+        "^0.8.20"
+      ],
+      "artifacts": [
+        "TemporalPolicyLogic"
+      ]
+    },
+    "/Users/zhanqiuyang/learn/research/BlockA2A/contracts/lib/DIDAttributePolicyLogic.sol": {
+      "lastModificationDate": 1748940495272,
+      "contentHash": "bc580681fd48ef699553f94e74d7e907",
+      "sourceName": "contracts/lib/DIDAttributePolicyLogic.sol",
+      "solcConfig": {
+        "version": "0.8.24",
+        "settings": {
+          "viaIR": true,
+          "optimizer": {
+            "enabled": true,
+            "runs": 1000000
+          },
+          "evmVersion": "paris",
+          "outputSelection": {
+            "*": {
+              "*": [
+                "abi",
+                "evm.bytecode",
+                "evm.deployedBytecode",
+                "evm.methodIdentifiers",
+                "metadata"
+              ],
+              "": [
+                "ast"
+              ]
+            }
+          }
+        }
+      },
+      "imports": [],
+      "versionPragmas": [
+        "^0.8.20"
+      ],
+      "artifacts": [
+        "DIDAttributePolicyLogic"
+      ]
+    },
+    "/Users/zhanqiuyang/learn/research/BlockA2A/contracts/lib/EnvironmentalPolicyLogic.sol": {
+      "lastModificationDate": 1748940535811,
+      "contentHash": "025140ba51abb3f85d6d165f1b4ac7bd",
+      "sourceName": "contracts/lib/EnvironmentalPolicyLogic.sol",
+      "solcConfig": {
+        "version": "0.8.24",
+        "settings": {
+          "viaIR": true,
+          "optimizer": {
+            "enabled": true,
+            "runs": 1000000
+          },
+          "evmVersion": "paris",
+          "outputSelection": {
+            "*": {
+              "*": [
+                "abi",
+                "evm.bytecode",
+                "evm.deployedBytecode",
+                "evm.methodIdentifiers",
+                "metadata"
+              ],
+              "": [
+                "ast"
+              ]
+            }
+          }
+        }
+      },
+      "imports": [],
+      "versionPragmas": [
+        "^0.8.20"
+      ],
+      "artifacts": [
+        "EnvironmentalPolicyLogic"
+      ]
+    },
+    "/Users/zhanqiuyang/learn/research/BlockA2A/contracts/interfaces/IAGC.sol": {
+      "lastModificationDate": 1750768911733,
+      "contentHash": "7c1bc9d14815c4444a480a186d39cb32",
+      "sourceName": "contracts/interfaces/IAGC.sol",
+      "solcConfig": {
+        "version": "0.8.24",
+        "settings": {
+          "viaIR": true,
+          "optimizer": {
+            "enabled": true,
+            "runs": 1000000
+          },
+          "evmVersion": "paris",
+          "outputSelection": {
+            "*": {
+              "*": [
+                "abi",
+                "evm.bytecode",
+                "evm.deployedBytecode",
+                "evm.methodIdentifiers",
+                "metadata"
+              ],
+              "": [
+                "ast"
+              ]
+            }
+          }
+        }
+      },
+      "imports": [],
+      "versionPragmas": [
+        "^0.8.20"
+      ],
+      "artifacts": [
+        "IAGC"
+      ]
+    },
+    "/Users/zhanqiuyang/learn/research/BlockA2A/contracts/lib/BN256G2.sol": {
+      "lastModificationDate": 1750691881404,
+      "contentHash": "8d4637b75b275ff95ca1620c2cc8ac7c",
+      "sourceName": "contracts/lib/BN256G2.sol",
+      "solcConfig": {
+        "version": "0.8.24",
+        "settings": {
+          "viaIR": true,
+          "optimizer": {
+            "enabled": true,
+            "runs": 1000000
+          },
+          "evmVersion": "paris",
+          "outputSelection": {
+            "*": {
+              "*": [
+                "abi",
+                "evm.bytecode",
+                "evm.deployedBytecode",
+                "evm.methodIdentifiers",
+                "metadata"
+              ],
+              "": [
+                "ast"
+              ]
+            }
+          }
+        }
+      },
+      "imports": [],
+      "versionPragmas": [
+        "^0.8.13"
+      ],
+      "artifacts": [
+        "BN256G2"
+      ]
+    },
+    "/Users/zhanqiuyang/learn/research/BlockA2A/contracts/lib/BLS.sol": {
+      "lastModificationDate": 1750800787238,
+      "contentHash": "93abd906dfb9adb3b9aabcbddac16df5",
+      "sourceName": "contracts/lib/BLS.sol",
+      "solcConfig": {
+        "version": "0.8.24",
+        "settings": {
+          "viaIR": true,
+          "optimizer": {
+            "enabled": true,
+            "runs": 1000000
+          },
+          "evmVersion": "paris",
+          "outputSelection": {
+            "*": {
+              "*": [
+                "abi",
+                "evm.bytecode",
+                "evm.deployedBytecode",
+                "evm.methodIdentifiers",
+                "metadata"
+              ],
+              "": [
+                "ast"
+              ]
+            }
+          }
+        }
+      },
+      "imports": [
+        "./ModExp.sol"
+      ],
+      "versionPragmas": [
+        ">=0.8.23"
+      ],
+      "artifacts": [
+        "BLS"
+      ]
+    },
+    "/Users/zhanqiuyang/learn/research/BlockA2A/contracts/lib/ModExp.sol": {
+      "lastModificationDate": 1748940553039,
+      "contentHash": "8061c4c4419f4e9344355999992dc495",
+      "sourceName": "contracts/lib/ModExp.sol",
+      "solcConfig": {
+        "version": "0.8.24",
+        "settings": {
+          "viaIR": true,
+          "optimizer": {
+            "enabled": true,
+            "runs": 1000000
+          },
+          "evmVersion": "paris",
+          "outputSelection": {
+            "*": {
+              "*": [
+                "abi",
+                "evm.bytecode",
+                "evm.deployedBytecode",
+                "evm.methodIdentifiers",
+                "metadata"
+              ],
+              "": [
+                "ast"
+              ]
+            }
+          }
+        }
+      },
+      "imports": [],
+      "versionPragmas": [
+        ">=0.8.23"
+      ],
+      "artifacts": [
+        "ModexpInverse",
+        "ModexpSqrt"
+      ]
+    },
+    "/Users/zhanqiuyang/learn/research/BlockA2A/contracts/main/InteractionLogicContract.sol": {
+      "lastModificationDate": 1750827723094,
+      "contentHash": "8842f97f9620337341f701beefd804d7",
+      "sourceName": "contracts/main/InteractionLogicContract.sol",
+      "solcConfig": {
+        "version": "0.8.24",
+        "settings": {
+          "viaIR": true,
+          "optimizer": {
+            "enabled": true,
+            "runs": 1000000
+          },
+          "evmVersion": "paris",
+          "outputSelection": {
+            "*": {
+              "*": [
+                "abi",
+                "evm.bytecode",
+                "evm.deployedBytecode",
+                "evm.methodIdentifiers",
+                "metadata"
+              ],
+              "": [
+                "ast"
+              ]
+            }
+          }
+        }
+      },
+      "imports": [
+        "../lib/BLS.sol",
+        "../lib/BN256G2.sol"
+      ],
+      "versionPragmas": [
+        "^0.8.20"
+      ],
+      "artifacts": [
+        "InteractionLogicContract"
+      ]
+    },
+    "/Users/zhanqiuyang/learn/research/BlockA2A/contracts/main/DataAnchoringContract.sol": {
+      "lastModificationDate": 1750817682486,
+      "contentHash": "0fe31edb2ac6e3177f047edfef081de7",
+      "sourceName": "contracts/main/DataAnchoringContract.sol",
+      "solcConfig": {
+        "version": "0.8.24",
+        "settings": {
+          "viaIR": true,
+          "optimizer": {
+            "enabled": true,
+            "runs": 1000000
+          },
+          "evmVersion": "paris",
+          "outputSelection": {
+            "*": {
+              "*": [
+                "abi",
+                "evm.bytecode",
+                "evm.deployedBytecode",
+                "evm.methodIdentifiers",
+                "metadata"
+              ],
+              "": [
+                "ast"
+              ]
+            }
+          }
+        }
+      },
+      "imports": [
+        "../lib/BLS.sol",
+        "../lib/BN256G2.sol"
+      ],
+      "versionPragmas": [
+        "^0.8.20"
+      ],
+      "artifacts": [
+        "DataAnchoringContract"
+      ]
+    },
+    "/Users/zhanqiuyang/learn/research/BlockA2A/contracts/main/AgentGovernanceContract.sol": {
+      "lastModificationDate": 1750825381864,
+      "contentHash": "39b39d4ca680269455273b9fd6e4704d",
+      "sourceName": "contracts/main/AgentGovernanceContract.sol",
+      "solcConfig": {
+        "version": "0.8.24",
+        "settings": {
+          "viaIR": true,
+          "optimizer": {
+            "enabled": true,
+            "runs": 1000000
+          },
+          "evmVersion": "paris",
+          "outputSelection": {
+            "*": {
+              "*": [
+                "abi",
+                "evm.bytecode",
+                "evm.deployedBytecode",
+                "evm.methodIdentifiers",
+                "metadata"
+              ],
+              "": [
+                "ast"
+              ]
+            }
+          }
+        }
+      },
+      "imports": [
+        "../interfaces/IAGC.sol",
+        "../lib/BLS.sol",
+        "../lib/BN256G2.sol"
+      ],
+      "versionPragmas": [
+        "^0.8.20"
+      ],
+      "artifacts": [
+        "AgentGovernanceContract"
       ]
     }
   }

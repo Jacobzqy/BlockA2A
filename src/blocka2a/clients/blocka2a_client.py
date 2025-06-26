@@ -8,7 +8,7 @@ import multibase
 from py_ecc.bls.g2_primitives import pubkey_to_G1
 from web3 import Web3
 from src.blocka2a.utils import crypto, bn256
-from typing import Optional, List, Any, Tuple
+from typing import Optional, List, Any, Tuple, Union
 from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PublicKey
 from cryptography.exceptions import InvalidSignature
 from py_ecc.bls import G2ProofOfPossession
@@ -345,14 +345,16 @@ class BlockA2AClient(BaseClient):
         Args:
             did: The DID string to verify.
             proof: The Proof object supplied by the user.
+            message: The message that was signed.
 
         Returns:
-            A tuple (ha, True) on success, where ha is the on-chain documentHash.
+            True if the signature is valid for the message, False otherwise.
 
         Raises:
             ContractError: If on-chain resolve call fails.
             NetworkError: If IPFS fetch fails.
             IdentityError: If integrity check or proof verification fails.
+            InvalidParameterError: If the proof type is unsupported or formats are invalid.
         """
         # 1. Resolve DID → (ha, cid)
         try:
@@ -388,7 +390,7 @@ class BlockA2AClient(BaseClient):
         except Exception as e:
             raise IdentityError(f"Integrity check error: {e}") from e
 
-        # 4. Verify proof
+        # 4. Verify proof against the provided message
         try:
             document = DIDDocument.model_validate(doc_obj)
         except Exception as e:
@@ -402,9 +404,31 @@ class BlockA2AClient(BaseClient):
             raise IdentityError(
                 f"在 DID 文档中未找到 ID 为 '{proof.verificationMethod}' 的公钥，无法验证 proof。"
             )
+
+        # 确保 message 是字节串
+        if isinstance(message, str):
+            message_bytes = message.encode('utf-8')
+        elif isinstance(message, bytes):
+            message_bytes = message
+        else:
+            # 对于其他类型，可以通过序列化为JSON来处理，但最好是明确要求字节或字符串
+            raise InvalidParameterError(f"Unsupported message type for verification: {type(message)}")
+
         pubkey = crypto.multibase_to_raw_public_key(signer_public_key_entry.publicKeyMultibase)
 
-        return crypto.verify(proof, message, pubkey)
+        if proof.type == "Ed25519Signature2020":
+            if signer_public_key_entry.type != "Ed25519VerificationKey2020":
+                raise IdentityError(
+                    f"Key type mismatch: Expected Ed25519VerificationKey2020 for proof type {proof.type}")
+            return crypto.verify(proof, message, pubkey)
+        elif proof.type == "BLS256Signature2020":
+            if signer_public_key_entry.type != "Bls256G2Key2020":
+                raise IdentityError(f"Key type mismatch: Expected Bls256G2Key2020 for proof type {proof.type}")
+            sig_bytes = base58.b58decode(proof.proofValue)
+            sig_point = bn256.deserialize_g1(sig_bytes)
+            return bn256.verify_single(bn256.decompress_g2(pubkey), sig_point, message, b"DAC")
+        else:
+            raise InvalidParameterError(f"Unsupported proof type for verification: '{proof.type}'")
 
     @classmethod
     def sign_task(cls, bls_sk: BLSPrivateKey, task_hash: bytes, milestone: str) -> BLSSignature:
@@ -423,7 +447,7 @@ class BlockA2AClient(BaseClient):
             raise InvalidParameterError("bls_sk must be BLSPrivateKey (int)")
 
         start = time.time()  # EVALUATION: signature generation
-        key = task_hash.hex() + "|" + milestone
+        key = str(task_hash) + "|" + milestone
         msg = key.encode('utf-8')
 
         try:

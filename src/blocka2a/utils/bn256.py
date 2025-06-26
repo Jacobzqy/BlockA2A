@@ -17,16 +17,15 @@ Key Features:
 """
 from __future__ import annotations
 import secrets
-from hashlib import sha256  # (sha256 no longer used for hashing to curve)
 from typing import List, NewType, Tuple
 from py_ecc.bn128 import (
     FQ, FQ2, FQ12,
-    G1, G2, Z1, Z2,
+    G2, Z1, Z2,
     b, b2, curve_order,
     add, multiply, pairing, final_exponentiate, is_on_curve,
     field_modulus as p
 )
-from Crypto.Hash import keccak  # using pycryptodome for keccak256
+from Crypto.Hash import keccak
 
 # --- Type Aliases ---
 SecretKey = NewType("SecretKey", int)
@@ -311,6 +310,30 @@ def sign(msg: bytes, sk: SecretKey, domain: bytes) -> Signature:
     h = hash_to_g1(msg, domain)
     sig_point = multiply(h, sk)
     return Signature(sig_point)
+
+
+def deserialize_g1(buf: bytes) -> Signature:
+    """
+    反序列化一个64字节的未压缩G1点。
+    这是您签名流程的精确反向操作。
+    """
+    # 步骤1: 检查输入是否为64字节
+    if len(buf) != 64:
+        raise ValueError(f"Signature must be 64 bytes, but got {len(buf)}")
+
+    # 步骤2 & 4: 切分字节并转换为整数
+    x = int.from_bytes(buf[0:32], "big")
+    y = int.from_bytes(buf[32:64], "big")
+
+    # 步骤5 & 6: 构造成 py_ecc 能理解的点对象
+    point = (FQ(x), FQ(y))
+
+    # 安全检查：确保这个点确实在曲线上
+    if not is_on_curve(point, b):
+        raise ValueError("Deserialized signature point is not on the G1 curve")
+
+    # 用您的 Signature 类型包装后返回
+    return Signature(point)
 
 
 def verify_single(pk: PublicKey, sig: Signature, msg: bytes, domain: bytes) -> bool:

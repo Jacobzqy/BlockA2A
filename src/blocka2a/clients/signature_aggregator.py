@@ -86,7 +86,7 @@ class SignatureAggregator(BaseClient):
 
     def submit_task_validation(
         self,
-        agg_sig: BLSSignature,
+        agg_sig,
         data_hash: bytes,
         milestone: str,
         dids: List[str],
@@ -109,12 +109,14 @@ class SignatureAggregator(BaseClient):
             InvalidParameterError: 如果输入格式错误。
             ContractError: 如果链上更新调用失败。
         """
-        if not agg_sig or not isinstance(agg_sig, (bytes, bytearray)):
-            raise InvalidParameterError("aggregate_signature must be BLSSignature")
-        print(f"DEBUG: agg_sig length: {len(agg_sig)}, value: {agg_sig.hex()}")
+        start = time.time()
+#        if not agg_sig or not isinstance(agg_sig, (bytes, bytearray)):
+#            raise InvalidParameterError("aggregate_signature must be BLSSignature")
+#        print(f"DEBUG: agg_sig length: {len(agg_sig)}, value: {agg_sig.hex()}")
 
         # 将 G1 签名转换为 uint256[2] G1 坐标
-        agg_sig_point = self.bls_signature_to_uint256x2(agg_sig)
+#        agg_sig_point = self.bls_signature_to_uint256x2(agg_sig)
+        agg_sig_point = agg_sig
 
         # Submit on-chain: update(uint256[4], bytes32, string, string[])
         try:
