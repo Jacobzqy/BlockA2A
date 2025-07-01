@@ -110,8 +110,8 @@ class SignatureAggregator(BaseClient):
             ContractError: 如果链上更新调用失败。
         """
         start = time.time()
-        if not agg_sig or not isinstance(agg_sig, (bytes, bytearray)):
-           raise InvalidParameterError("aggregate_signature must be BLSSignature")
+        # if not agg_sig or not isinstance(agg_sig, (bytes, bytearray)):
+        #    raise InvalidParameterError("aggregate_signature must be BLSSignature")
 #        print(f"DEBUG: agg_sig length: {len(agg_sig)}, value: {agg_sig.hex()}")
 
         # 将 G1 签名转换为 uint256[2] G1 坐标
