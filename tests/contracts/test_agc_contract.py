@@ -1,9 +1,11 @@
+# -*- coding: utf-8 -*-
 import pytest
 import os
 from web3 import Web3, HTTPProvider
 from web3.exceptions import ContractLogicError
 from solcx import compile_files, install_solc
 from typing import List, Tuple
+import time
 from eth_abi.packed import encode_packed
 
 # --------------------------------------------------------------------
@@ -96,6 +98,30 @@ def registered_did_for_update(agc_contract, w3_and_accounts):
 
 
 # --------------------------------------------------------------------
+#  RESOLVE 函数测试
+# --------------------------------------------------------------------
+
+def test_resolve_success(agc_contract, w3_and_accounts, registered_did_for_update):
+    """测试 resolve 函数在 DID 存在且激活时的行为"""
+    
+    w3, accounts = w3_and_accounts
+    did = registered_did_for_update  # 使用 fixture 提供的已注册 DID
+    expected_hash = w3.keccak(text="initial")  # 与注册时一致
+    expected_cid = "cid_update"  # 与注册时一致
+
+    # 调用 resolve 函数
+    start = time.time()
+    documentHash, cid = agc_contract.functions.resolve(did).call()
+
+    # 验证返回值
+    assert documentHash == expected_hash, f"Expected documentHash {expected_hash}, but got {documentHash}"
+    assert cid == expected_cid, f"Expected cid {expected_cid}, but got {cid}"
+    end = time.time()
+    print(f"EVALUATION: Resolve the agent status in AGC {end - start:.6f} s.")
+    print(f"✅ PASSED: Resolve for DID '{did}' returned correct documentHash and cid.")
+
+
+# --------------------------------------------------------------------
 #  UPDATE 函数签名测试
 # --------------------------------------------------------------------
 
@@ -106,6 +132,7 @@ def registered_did_for_update(agc_contract, w3_and_accounts):
 ])
 def test_update_success_cases(agc_contract, w3_and_accounts, registered_did_for_update, signer_indices, pks_mask_desc):
     """测试 update 成功的场景：签名数量满足或超过要求"""
+    
     print(f"\n--- Testing UPDATE Success: {pks_mask_desc} ---")
     w3, accounts = w3_and_accounts
     user = accounts[1]
@@ -121,10 +148,13 @@ def test_update_success_cases(agc_contract, w3_and_accounts, registered_did_for_
     sigs = [sign(payload, sk, domain=b"AGC-update") for sk in sks_to_use]
     agg_sig = format_sig_for_contract(aggregate_sigs(sigs))
 
+    start = time.time()
     tx_hash = agc_contract.functions.update(did, new_doc_hash, agg_sig, pks_mask).transact({'from': user})
     receipt = w3.eth.wait_for_transaction_receipt(tx_hash)
 
     assert receipt.status == 1
+    end = time.time()
+    print(f"EVALUATION: Update the agent status in AGC {end - start:.6f} s.")
     print(f"✅ PASSED: Update successful with {len(signer_indices)} signers.")
     updated_entry = agc_contract.functions._didEntries(did).call()
     assert updated_entry[2] == new_doc_hash
@@ -226,6 +256,7 @@ def registered_did_for_revoke(agc_contract, w3_and_accounts):
 
 def test_revoke_success(agc_contract, w3_and_accounts, registered_did_for_revoke):
     """测试 revoke 成功的场景"""
+    
     print("\n--- Testing REVOKE Success ---")
     w3, accounts = w3_and_accounts
     user = accounts[1]
@@ -241,13 +272,16 @@ def test_revoke_success(agc_contract, w3_and_accounts, registered_did_for_revoke
     sigs = [sign(payload, sk, domain=b"AGC-revoke") for sk in sks_to_use]
     agg_sig = format_sig_for_contract(aggregate_sigs(sigs))
 
+    start = time.time()       # EVALUATION: Update ACC policies to revoke permissions
     tx_hash = agc_contract.functions.revoke(did, agg_sig, pks_mask).transact({'from': user})
     receipt = w3.eth.wait_for_transaction_receipt(tx_hash)
     assert receipt.status == 1
 
     revoked_entry = agc_contract.functions._didEntries(did).call()
     assert revoked_entry[4] == 1
-    print("✅ PASSED: Revoke successful.")
+    end = time.time()
+    print(f"✅ PASSED: Revoke successful.")
+    print(f"EVALUATION: Update ACC policies to revoke permissions {end - start:.6f} s.")
 
 
 def test_revoke_fail_wrong_domain(agc_contract, w3_and_accounts, registered_did_for_revoke):

@@ -15,14 +15,15 @@ from src.blocka2a.utils import crypto, bn256
 from src.blocka2a.types import PublicKeyEntry, ServiceEntry, Capabilities, PolicyConstraints, Proof
 from src.blocka2a.clients.service_server import ServiceServer
 def main():
+    
     # Hardhat 本地节点的默认 RPC 地址
     rpc_endpoint = "http://127.0.0.1:8545/"
 
     # 本地部署的 AgentGovernanceContract (AGC) 地址
-    agc_address = "0x9fE46736679d2D9a65F0992F2272dE9f3c7fa6e0"
-    acc_address = "0x5FC8d32690cc91D4c39d9d3abcBD16989F875707"
-    ilc_address = "0xDc64a140Aa3E981100a9becA4E685f962f0cF6C9"
-    dac_address = "0xCf7Ed3AccA5a467e9e704C703E8D87F634fB0Fc9"
+    agc_address = "0x1613beB3B2C4f22Ee086B2b38C1476A3cE7f78E8"
+    acc_address = "0x95401dc811bb5740090279Ba06cfA8fcF6113778"
+    ilc_address = "0xf5059a5D33d5853360D16C683c16e67980206f36"
+    dac_address = "0x851356ae760d987E095750cCeb3bC6014560891C"
 
     # Hardhat 节点提供的第一个测试账户的私钥
     private_key = "0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80"
@@ -223,7 +224,7 @@ def main():
     )
     is_valid = client.verify(did1, proof=proof, message=message.encode('utf-8'))
     end = time.time()
-    print(f"验证耗时: {end - start:.6f} 秒")
+    print(f"Signature Verification: {end - start:.6f} 秒")
     print(f"✅ 签名验证结果: {is_valid}")
 
     # ==========================================================================
@@ -266,7 +267,7 @@ def main():
         )
 
     # ==========================================================================
-    # 8. 聚合签名并提交任务验证   TODO: 验证部分代码存在bug
+    # 8. 聚合签名并提交任务验证 
     # ==========================================================================
     print("\n🚀 步骤 8: 聚合签名并提交任务验证...")
     payload = create_payload(data_hash, milestone)
@@ -297,7 +298,7 @@ def main():
         pks_mask = 0x03  # 选择 _blsPubKeyList[0] 和 _blsPubKeyList[1]
 
         agg_sig = bn256.aggregate_sigs(signatures)
-
+        task_validation_end = time.time()
         tx_hash = aggregator.submit_task_validation(
             agg_sig=[agg_sig[0].n, agg_sig[1].n],
             data_hash=data_hash,
@@ -305,8 +306,8 @@ def main():
             dids=dids,
             pks_mask=pks_mask
         )
-        task_validation_end = time.time()
-        print(f"Task validation completed in {(task_validation_end - task_validation_start):.2f} s")
+        
+        print(f"Aggregated signature completed in {(task_validation_end - task_validation_start):.6f} s")
         print(f"✅ 任务验证提交成功: tx_hash={tx_hash.hex()[:20]}...")
     except Exception as e:
         print(f"❌ 任务验证提交失败: {e}")
@@ -345,12 +346,14 @@ def main():
         end_verify = time.time()
         verify_time = end_verify - start_verify
         
-        print(f"✅ 资源请求时间: {request_time:.6f} 秒")
-        print(f"✅ 令牌验证时间: {verify_time:.6f} 秒")
+        print(f"✅ Token issuance: {request_time:.6f} 秒")
+        print(f"✅ token verification: {verify_time:.6f} 秒")
         print(f"✅ 验证结果: {'有效' if is_valid else '无效'}")
     except Exception as e:
         print(f"❌ 测量失败: {e}")
         raise
+
+    
 
 if __name__ == "__main__":
     main()

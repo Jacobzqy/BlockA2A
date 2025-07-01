@@ -3,10 +3,12 @@ import time
 import base58
 import json
 import multibase
+
 # from Crypto.SelfTest.Protocol.test_ecdh import public_key
 
 from py_ecc.bls.g2_primitives import pubkey_to_G1
 from web3 import Web3
+from web3.types import HexBytes
 from src.blocka2a.utils import crypto, bn256
 from typing import Optional, List, Any, Tuple, Union
 from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PublicKey
@@ -119,7 +121,7 @@ class BlockA2AClient(BaseClient):
         except Exception as e:
             raise IdentityError(f"Unexpected error during signature verification: {e}") from e
 
-    def anchor_data(self, payload: Any, expiry: int) -> Tuple[bytes, str]:
+    def anchor_data(self, payload: Any, expiry: int) -> Tuple[bytes, str, bytes]:
         """
         Anchor arbitrary payload on-chain with a user-specified expiry timestamp.
 
@@ -136,7 +138,7 @@ class BlockA2AClient(BaseClient):
             ContractError: If the on-chain anchor transaction fails.
         """
         try:
-            payload_json = json.dumps(payload, separators=(",", ":"), sorted_keys=True)
+            payload_json = json.dumps(payload, separators=(",", ":"), sort_keys=True)
         except Exception as e:
             raise LedgerError(f"Payload not JSON-serializable: {e}") from e
         data_bytes = payload_json.encode()
@@ -160,7 +162,13 @@ class BlockA2AClient(BaseClient):
         except Exception as e:
             raise ContractError(f"anchor tx failed: {e}") from e
 
-        return tx_hash, cid
+        return tx_hash, cid, data_hash
+    
+    def get_off_chain_data(self, cid: str) -> Any:
+        return self._ipfs.get_json(cid)
+    
+    def get_on_chain_data(self, data_hash: bytes) -> Tuple[bytes, str, int, str]:
+        return self._dac.functions.get(data_hash).call()
 
     def verify_data(self, payload: Any) -> bool:
         """

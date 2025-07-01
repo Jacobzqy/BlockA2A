@@ -6,12 +6,15 @@ from datetime import datetime, timedelta, timezone
 from typing import List, Optional
 import time
 import base58
+from zoneinfo import ZoneInfo
+from eth_abi.packed import encode_packed
+from py_ecc.bls import G2ProofOfPossession as BLS  # 假设使用 py_ecc 作为 BLS 库
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
 from src.blocka2a.clients.blocka2a_client import BlockA2AClient
 from src.blocka2a.clients.task_initiator import TaskInitiator
 from src.blocka2a.clients.signature_aggregator import SignatureAggregator
-from src.blocka2a.utils import crypto
+from src.blocka2a.utils import crypto, bn256
 from src.blocka2a.types import PublicKeyEntry, ServiceEntry, Capabilities, PolicyConstraints, Proof
 from src.blocka2a.clients.service_server import ServiceServer
 def measure_execution_time(func, *args, **kwargs):
@@ -27,10 +30,10 @@ def main():
     rpc_endpoint = "http://127.0.0.1:8545/"
 
     # 本地部署的 AgentGovernanceContract (AGC) 地址
-    agc_address = "0xDc64a140Aa3E981100a9becA4E685f962f0cF6C9"
-    acc_address = "0xa513E6E4b8f2a923D98304ec87F64353C4D5C853"
-    ilc_address = "0x0165878A594ca255338adfa4d48449f69242Eb8F"
-    dac_address = "0x5FC8d32690cc91D4c39d9d3abcBD16989F875707"
+    agc_address = "0x1613beB3B2C4f22Ee086B2b38C1476A3cE7f78E8"
+    acc_address = "0x95401dc811bb5740090279Ba06cfA8fcF6113778"
+    ilc_address = "0xf5059a5D33d5853360D16C683c16e67980206f36"
+    dac_address = "0x851356ae760d987E095750cCeb3bC6014560891C"
 
     # Hardhat 节点提供的第一个测试账户的私钥
     private_key = "0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80"
@@ -167,112 +170,63 @@ def main():
 
 
     # ==========================================================================
-    # 5. 测量 AGC 函数执行时间
+    # 5. 测量 Evidence Collection 的时间
     # ==========================================================================
-    print("\n⏱️ 步骤 5: 测量 AGC 函数执行时间...")
-    try:
-        # 获取当前 DID 信息
-        current_document_hash, current_cid = client._agc.functions.resolve(did1).call()
-        print(f"✅ 当前 DID 状态: docHash={current_document_hash.hex()}, cid={current_cid}")
-        
-        # 准备新文档哈希
-        new_document_content = b"Updated DID document content"
-        new_document_hash = hashlib.sha256(new_document_content).digest()
-        print(f"✅ 新文档哈希: {new_document_hash.hex()}")
-        
-        # 准备签名数据 (简化版，实际需要有效的 BLS 签名)
-        # 注意: 实际应用中需要生成有效的聚合签名，这里使用测试签名
-        agg_sig = [12345678, 87654321]  # 简化的签名格式
-        pks_mask = 0b00000001  # 使用第一个公钥
-        
-        # 1. 测量 resolve 时间
-        start_resolve = time.time()
-        doc_hash, cid = client._agc.functions.resolve(did1).call()
-        resolve_time = time.time() - start_resolve
-        print(f"✅ resolve 执行时间: {resolve_time:.6f} 秒")
-        print(f"  返回结果: docHash={doc_hash.hex()}, cid={cid}")
-        
-        # 2. 测量 update 时间
-        # 封装 update 函数以便测量
-        def execute_update():
-            tx = client._agc.functions.update(
-                did1,
-                new_document_hash,
-                agg_sig,
-                pks_mask
-            ).build_transaction({
-                'from': client._account.address,
-                'gas': client._default_gas,
-                'nonce': client._web3.eth.get_transaction_count(client._account.address),
-            })
-            signed_tx = client._account.sign_transaction(tx)
-            tx_hash = client._web3.eth.send_raw_transaction(signed_tx.rawTransaction)
-            return tx_hash
-        
-        # 发送交易并测量时间
-        start_update = time.time()
-        tx_hash = execute_update()
-        update_send_time = time.time() - start_update
-        print(f"✅ update 交易发送时间: {update_send_time:.6f} 秒")
-        print(f"  交易哈希: {tx_hash.hex()}")
-        
-        # 等待交易确认
-        start_confirm = time.time()
-        receipt = client._web3.eth.wait_for_transaction_receipt(tx_hash)
-        confirm_time = time.time() - start_confirm
-        print(f"✅ update 交易确认时间: {confirm_time:.6f} 秒")
-        print(f"  区块号: {receipt.blockNumber}, Gas 消耗: {receipt.gasUsed}")
-        
-        # 3. 测量 revoke 时间
-        # 封装 revoke 函数以便测量
-        def execute_revoke():
-            tx = client._agc.functions.revoke(
-                did1,
-                agg_sig,
-                pks_mask
-            ).build_transaction({
-                'from': client._account.address,
-                'gas': client._default_gas,
-                'nonce': client._web3.eth.get_transaction_count(client._account.address),
-            })
-            signed_tx = client._account.sign_transaction(tx)
-            return client._web3.eth.send_raw_transaction(signed_tx.rawTransaction)
-        
-        # 发送交易并测量时间
-        start_revoke = time.time()
-        tx_hash = execute_revoke()
-        revoke_send_time = time.time() - start_revoke
-        print(f"✅ revoke 交易发送时间: {revoke_send_time:.6f} 秒")
-        print(f"  交易哈希: {tx_hash.hex()}")
-        
-        # 等待交易确认
-        start_confirm = time.time()
-        receipt = client._web3.eth.wait_for_transaction_receipt(tx_hash)
-        confirm_time = time.time() - start_confirm
-        print(f"✅ revoke 交易确认时间: {confirm_time:.6f} 秒")
-        print(f"  区块号: {receipt.blockNumber}, Gas 消耗: {receipt.gasUsed}")
-        
-        # 4. 验证 revoke 后的状态
-        start_resolve = time.time()
+    retrieved_data = []
+    
+    task = {
+        "task_id": f"task-{int(time.time())}",
+        "description": "Collect evidence for agent behavior",
+    }
+
+    # expiry = int((datetime.now(ZoneInfo("UTC")) + timedelta(days=10)).timestamp())
+    expiry = client._w3.eth.get_block("latest")["timestamp"] + 3600
+    tx_hash, cid, data_hash = client.anchor_data(task, expiry=expiry)
+
+    start = time.time()
+    for i in range(5):
         try:
-            # 尝试解析已撤销的 DID
-            doc_hash, cid = client._agc.functions.resolve(did1).call()
-            print("⚠️ 预期错误但未抛出: DID 应已被撤销")
+            data_hash_ret, cid_ret, expiry_ret, status_ret = client.get_on_chain_data(data_hash)
+            retrieved_data.append({
+                "source": "on_chain",
+                "data_hash": data_hash_ret.hex(),
+                "cid": cid_ret,
+                "expiry": expiry_ret,
+                "status": status_ret,
+                "retrieval_index": i + 1
+            })
+            print(f"On-chain retrieval {i + 1}: data_hash={data_hash_ret.hex()}, cid={cid_ret}")
         except Exception as e:
-            resolve_time = time.time() - start_resolve
-            print(f"✅ 解析已撤销 DID 时间: {resolve_time:.6f} 秒")
-            print(f"  预期错误: {str(e)}")
-        
-        print("\n📊 AGC 函数性能总结:")
-        print(f"  resolve() 调用时间: {resolve_time:.6f} 秒")
-        print(f"  update() 总时间: {update_send_time + confirm_time:.6f} 秒 (发送: {update_send_time:.6f}, 确认: {confirm_time:.6f})")
-        print(f"  revoke() 总时间: {revoke_send_time + confirm_time:.6f} 秒 (发送: {revoke_send_time:.6f}, 确认: {confirm_time:.6f})")
-        
+            print(f"On-chain retrieval {i + 1} failed: {e}")
+            continue
+
+    # 链下获取 10 次
+    for i in range(10):
+        try:
+            off_chain_data = client.get_off_chain_data(cid)
+            retrieved_data.append({
+                "source": "off_chain",
+                "data": off_chain_data,
+                "retrieval_index": i + 1
+            })
+            print(f"Off-chain retrieval {i + 1}: data={off_chain_data}")
+        except Exception as e:
+            print(f"Off-chain retrieval {i + 1} failed: {e}")
+            continue
+
+    # 将所有获取的数据存储到链下（IPFS）
+    print("\nStoring retrieved data to IPFS...")
+    try:
+        retrieved_json = json.dumps(retrieved_data, separators=(",", ":"), sorted_keys=True)
+        retrieved_cid = client._ipfs.add_json(retrieved_json)
+        print(f"All retrieved data stored to IPFS with CID: {retrieved_cid}")
     except Exception as e:
-        print(f"❌ AGC 函数测试失败: {e}")
-        import traceback
-        traceback.print_exc()
-        raise
+        print(f"Failed to store retrieved data to IPFS: {e}")
+
+    end = time.time()
+    elapsed_time = end - start
+    print(f"\nEvidence Collection completed in {elapsed_time:.6f} s")
+    
 
 
 if __name__ == "__main__":

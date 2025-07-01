@@ -43,6 +43,10 @@ class BaseClient:
         # IPFS client (optional)
         self._ipfs = IPFSClient(ipfs_gateway) if ipfs_gateway else None
 
+    def get_account_address(self) -> str:
+        """返回当前账户地址"""
+        return self._acct.address
+    
     def _send_tx(self, fn: Callable[..., ContractFunction], *args: Any, value: int = 0) -> bytes:
         """
         Build, sign, send a transaction and wait for its receipt.

@@ -108,9 +108,12 @@ def test_full_workflow_success(logic_contract, w3_and_accounts):
     sigs0 = [sign(nonce0_payload, sk, domain=b"ILC") for sk in sks_to_use]
     agg_sig0 = format_sig_for_contract(aggregate_sigs(sigs0))
 
+    start = time.time()  # 记录开始时间
     tx_hash1 = logic_contract.functions.transition(EVENT_PAYMENT_RECEIVED, agg_sig0, pks_mask).transact({'from': user})
     receipt1 = w3.eth.wait_for_transaction_receipt(tx_hash1)
     assert receipt1.status == 1
+    end = time.time()  # 记录结束时间
+    elapsed_time = end - start
 
     # 验证第一步转换后的状态
     logs1 = logic_contract.events.TransitionExecuted().get_logs(from_block=receipt1.blockNumber,
@@ -126,10 +129,14 @@ def test_full_workflow_success(logic_contract, w3_and_accounts):
     sigs1 = [sign(nonce1_payload, sk, domain=b"ILC") for sk in sks_to_use]
     agg_sig1 = format_sig_for_contract(aggregate_sigs(sigs1))
 
+    start = time.time()  # 记录开始时间
     tx_hash2 = logic_contract.functions.transition(EVENT_MANUFACTURING_COMPLETE, agg_sig1, pks_mask).transact(
         {'from': user})
     receipt2 = w3.eth.wait_for_transaction_receipt(tx_hash2)
     assert receipt2.status == 1
+    end = time.time()  # 记录结束时间
+    elapsed_time  = (elapsed_time + (end - start)) / 2
+    print(f"EVALUATION: Update ILC's task transition guard to halt task execution took {elapsed_time:.6f} s.")
 
     # 验证第二步转换后的状态
     logs2 = logic_contract.events.TransitionExecuted().get_logs(from_block=receipt2.blockNumber,
