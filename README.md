@@ -1,5 +1,17 @@
 # BlockA2A Protocol & SDK: Developer Documentation
 
+## Quick Start
+```bash
+ipfs init
+
+ipfs daemon
+
+npx hardhat node
+
+npx hardhat run scripts/deploy.js --network localhost
+
+```
+
 ## 1. Introduction & Vision
 
 Welcome to the official documentation for the BlockA2A protocol.
