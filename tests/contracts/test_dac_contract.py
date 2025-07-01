@@ -66,8 +66,10 @@ SOLC_VERSION = "0.8.23"
 
 TEST_DIR     = os.path.dirname(os.path.abspath(__file__))
 PROJECT_ROOT = os.path.abspath(os.path.join(TEST_DIR, "..", ".."))
-CONTRACT_SRC = os.path.join(PROJECT_ROOT, "contracts", "main", "DataAnchoringContract.sol")
-ALLOWED_PATH = [os.path.join(PROJECT_ROOT, "contracts")]
+# CONTRACT_SRC = os.path.join(PROJECT_ROOT, "contracts", "main", "DataAnchoringContract.sol")
+# ALLOWED_PATH = [os.path.join(PROJECT_ROOT, "contracts")]
+CONTRACT_SRC = "contracts/main/DataAnchoringContract.sol"  # 相对路径
+ALLOWED_PATH = ["contracts"]  # 允许的根目录
 
 # ---------------------------------------------------------------------------
 #  5. Pytest fixtures
@@ -98,6 +100,8 @@ def compiled_contract():
         optimize_runs=200,
     )
     key = f"{CONTRACT_SRC}:DataAnchoringContract"
+    print(compiled.keys())  # 打印所有编译产物的键
+    print(key)
     assert key in compiled, "未找到 DataAnchoringContract 的编译产物"
     return compiled[key]
 
