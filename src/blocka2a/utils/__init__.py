@@ -36,6 +36,7 @@ from .bn256 import (
     aggregate_sigs,
     verify_aggregate,
     verify_fast_aggregate_same_msg,
+    deserialize_g1,
 )
 
 
@@ -55,6 +56,7 @@ __all__ = [
     "generate_keypair",
     "compress_g2",
     "decompress_g2",
+    "deserialize_g1",
     "hash_to_g1",
     "sign",
     "verify_single",

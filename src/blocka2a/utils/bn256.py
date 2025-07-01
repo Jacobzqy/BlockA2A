@@ -44,7 +44,8 @@ __all__ = [
     "aggregate_pks",
     "aggregate_sigs",
     "verify_aggregate",
-    "verify_fast_aggregate_same_msg"
+    "verify_fast_aggregate_same_msg",
+    "deserialize_g1",
 ]
 
 # --- Key Generation ---
@@ -313,26 +314,41 @@ def sign(msg: bytes, sk: SecretKey, domain: bytes) -> Signature:
 
 
 def deserialize_g1(buf: bytes) -> Signature:
+    """Deserializes a 64-byte uncompressed G1 point into a Signature.
+
+    This function reconstructs a G1 point from its raw affine (x, y)
+    coordinates. It serves as the reverse of a simple uncompressed
+    serialization process. A critical security check is performed to ensure
+    the resulting point lies on the G1 curve.
+
+    Args:
+        buf: A 64-byte object representing an uncompressed G1 point, with
+            the first 32 bytes as the x-coordinate and the next 32 bytes
+            as the y-coordinate.
+
+    Returns:
+        The reconstructed Signature (a G1 point).
+
+    Raises:
+        ValueError: If the input buffer is not 64 bytes, or if the
+            reconstructed point is not on the G1 curve.
     """
-    反序列化一个64字节的未压缩G1点。
-    这是您签名流程的精确反向操作。
-    """
-    # 步骤1: 检查输入是否为64字节
+    # Step 1: Check if the input is 64 bytes.
     if len(buf) != 64:
         raise ValueError(f"Signature must be 64 bytes, but got {len(buf)}")
 
-    # 步骤2 & 4: 切分字节并转换为整数
+    # Step 2 & 4: Slice the bytes and convert to integers.
     x = int.from_bytes(buf[0:32], "big")
     y = int.from_bytes(buf[32:64], "big")
 
-    # 步骤5 & 6: 构造成 py_ecc 能理解的点对象
+    # Step 5 & 6: Construct a point object that py_ecc can understand.
     point = (FQ(x), FQ(y))
 
-    # 安全检查：确保这个点确实在曲线上
+    # Security Check: Ensure the point is actually on the curve.
     if not is_on_curve(point, b):
         raise ValueError("Deserialized signature point is not on the G1 curve")
 
-    # 用您的 Signature 类型包装后返回
+    # Return wrapped in your Signature type.
     return Signature(point)
 
 
