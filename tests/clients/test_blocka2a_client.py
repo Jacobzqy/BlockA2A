@@ -79,7 +79,7 @@ def verify_client(monkeypatch):
 
 # --------------------------- 测试 ----------------------------------
 def test_anchor_data_success(anchor_client):
-    tx, cid = anchor_client.anchor_data({"foo":"bar"}, 100)
+    tx, cid, data_hash = anchor_client.anchor_data({"foo":"bar"}, 100)
     assert tx == b"txhash" and cid == "cid123"
 
 def test_anchor_data_bad_json(anchor_client):

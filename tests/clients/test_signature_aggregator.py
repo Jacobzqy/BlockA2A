@@ -90,7 +90,7 @@ def test_submit_task_validation_invalid_sig(stub_load_contract):
     )
     data_hash = b"\x01" * 32
     with pytest.raises(InvalidParameterError):
-        aggregator.submit_task_validation(b"", data_hash, "ms", ["did:1"])
+        aggregator.submit_task_validation(b"", data_hash, "ms", ["did:1"], pks_mask=0b11)
 
 def test_submit_task_validation_success(stub_load_contract):
     aggregator = SignatureAggregator(
@@ -100,7 +100,7 @@ def test_submit_task_validation_success(stub_load_contract):
     x, y = 9, 10
     agg_sig = x.to_bytes(32, "big") + y.to_bytes(32, "big")
     data_hash = b"\x02" * 32
-    tx = aggregator.submit_task_validation(agg_sig, data_hash, "ms", ["didA", "didB"])
+    tx = aggregator.submit_task_validation(agg_sig, data_hash, "ms", ["didA", "didB"], pks_mask=0b11)
     assert tx == b"\x11" * 32
 
 def test_submit_task_validation_onchain_error(monkeypatch, stub_load_contract):
@@ -117,7 +117,7 @@ def test_submit_task_validation_onchain_error(monkeypatch, stub_load_contract):
     sig = (1).to_bytes(32, "big") + (2).to_bytes(32, "big")
     data_hash = b"\x03" * 32
     with pytest.raises(ContractError):
-        aggregator.submit_task_validation(sig, data_hash, "ms", ["didX"])
+        aggregator.submit_task_validation(sig, data_hash, "ms", ["didX"], pks_mask=0b11)
 
 def test_init_invalid_address(monkeypatch):
     # 恢复原始 _load_contract

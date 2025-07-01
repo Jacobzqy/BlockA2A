@@ -83,7 +83,8 @@ class TaskInitiator(BaseClient):
 
         # 2. Serialize and hash
         try:
-            meta_dict = meta.dict()
+            # meta_dict = meta.dict()
+            meta_dict = meta  # Convert to dict for serialization
             json_str = json.dumps(meta_dict, separators=(",", ":"), sort_keys=True)
         except Exception as e:
             raise InvalidParameterError(f"Failed to serialize TaskMetadata: {e}") from e

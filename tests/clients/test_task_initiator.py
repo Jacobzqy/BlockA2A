@@ -71,7 +71,7 @@ def test_initiate_task_success(fake_contract, fake_send_tx):
     ti = TaskInitiator("rpc", "did:example:123", "0xabc")
     ti._ipfs = FakeIPFS()
 
-    cid, tx_hash = ti.initiate_task(
+    cid, tx_hash, data_hash = ti.initiate_task(
         participants=["p1", "p2"],
         description="A sample task",
         deadline=9876543210
