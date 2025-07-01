@@ -4,13 +4,15 @@ import pytest
 from web3 import Web3, HTTPProvider
 from solcx import compile_files, install_solc, set_solc_version, link_code
 from eth_utils import to_hex
+from pathlib import Path
 
-pytest.skip("TestTemporalHarness.sol not found, skipping all tests", allow_module_level=True)
 RPC_URL      = "http://127.0.0.1:8545"
 SOLC_VERSION = "0.8.20"
 ROOT         = os.path.abspath(os.path.join(__file__, "..", "..", ".."))
-HARNESS      = os.path.join(ROOT, "contracts", "main", "TestTemporalHarness.sol")
-LIB          = os.path.join(ROOT, "contracts", "lib",  "TemporalPolicyLogic.sol")
+# HARNESS      = os.path.join(ROOT, "contracts", "main", "TestTemporalHarness.sol")
+# LIB          = os.path.join(ROOT, "contracts", "lib",  "TemporalPolicyLogic.sol")
+HARNESS = 'contracts/main/TestTemporalHarness.sol'
+LIB     = 'contracts/lib/TemporalPolicyLogic.sol'
 
 ONE_HOUR = 3600
 ONE_DAY  = 86400
@@ -52,6 +54,20 @@ def compiled():
     return compile_files([HARNESS, LIB],
                          allow_paths=[os.path.join(ROOT, "contracts")],
                          solc_version=SOLC_VERSION)
+
+# @pytest.fixture(scope="module")
+# def compiled():
+#     artifacts_dir = Path(ROOT) / "artifacts"
+#     artifacts_dir.mkdir(exist_ok=True)  # 确保目录存在
+    
+#     return compile_files(
+#         [HARNESS, LIB],
+#         allow_paths=[os.path.join(ROOT, "contracts")],
+#         solc_version=SOLC_VERSION,
+#         output_dir=str(artifacts_dir),  # 关键：指定输出目录
+#         via_ir=True,
+#         optimize=True
+#     )
 
 
 @pytest.fixture
