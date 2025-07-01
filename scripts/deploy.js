@@ -74,11 +74,11 @@ async function main() {
   const dac = await DAC.deploy();
   const ilc = await ILC.deploy(_blsPubKeyList, 1);
   await agc.deployed();
-  console.log("AgentGovernance deployed to:", agc.address);
+  console.log("Agent Governance Contract deployed to:", agc.address);
   await dac.deployed();
-  console.log("DataAnchoring deployed to:", dac.address);
+  console.log("Data Anchoring Contract deployed to:", dac.address);
   await ilc.deployed();
-  console.log("InteractionLogic deployed to:", ilc.address);
+  console.log("Interaction Logic Contract deployed to:", ilc.address);
   // 第三步：部署主合约实例
   // 【重要】请检查您的 ACC 合约构造函数是否需要参数！
   // 如果构造函数需要参数（比如BLS公钥列表），您需要在这里传入。
@@ -87,7 +87,7 @@ async function main() {
 
   await acc.deployed();
 
-  console.log(`\n✅ AccessControlContract deployed successfully to: ${acc.address}`);
+  console.log(`Access Control Contract deployed to: ${acc.address}`);
 }
 
 main().catch(err => { console.error(err); process.exit(1); });

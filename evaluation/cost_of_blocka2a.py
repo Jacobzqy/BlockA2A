@@ -3,8 +3,8 @@ import os
 import hashlib
 import json
 from datetime import datetime, timedelta, timezone
-from typing import List, Optional
 import time
+from eth_abi.packed import encode_packed
 import base58
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
@@ -14,6 +14,16 @@ from src.blocka2a.clients.signature_aggregator import SignatureAggregator
 from src.blocka2a.utils import crypto, bn256
 from src.blocka2a.types import PublicKeyEntry, ServiceEntry, Capabilities, PolicyConstraints, Proof
 from src.blocka2a.clients.service_server import ServiceServer
+
+def create_payload(data_hash: bytes, milestone: str) -> bytes:
+    """
+    构造与合约 abi.encodePacked 完全一致的字节串。
+    """
+    return encode_packed(
+        ["bytes32", "string", "string"],
+        [data_hash, "|", milestone]
+    )
+
 def main():
     
     # Hardhat 本地节点的默认 RPC 地址
@@ -21,9 +31,9 @@ def main():
 
     # 本地部署的 AgentGovernanceContract (AGC) 地址
     agc_address = "0x9fE46736679d2D9a65F0992F2272dE9f3c7fa6e0"
-    acc_address = "0x5FC8d32690cc91D4c39d9d3abcBD16989F875707"
-    ilc_address = "0xDc64a140Aa3E981100a9becA4E685f962f0cF6C9"
     dac_address = "0xCf7Ed3AccA5a467e9e704C703E8D87F634fB0Fc9"
+    ilc_address = "0xDc64a140Aa3E981100a9becA4E685f962f0cF6C9"
+    acc_address = "0x5FC8d32690cc91D4c39d9d3abcBD16989F875707"
 
     # Hardhat 节点提供的第一个测试账户的私钥
     private_key = "0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80"
@@ -161,7 +171,8 @@ def main():
     # ==========================================================================
     # 5. 验证两个 DID
     # ==========================================================================
-    # print("\n🚖 步骤 5: 验证 DID...")
+    print("\n🚖 步骤 5: 验证 DID...")
+    print("\n Skip DID verification step for now")
     # try:
     #     valid1 = client.verify(did=did1, proof=None)
     #     valid2 = client.verify(did=did2, proof=None)
@@ -254,17 +265,6 @@ def main():
     except Exception as e:
         print(f"❌ 任务发起失败: {e}")
         raise
-
-    from eth_abi.packed import encode_packed
-
-    def create_payload(data_hash: bytes, milestone: str) -> bytes:
-        """
-        构造与合约 abi.encodePacked 完全一致的字节串。
-        """
-        return encode_packed(
-            ["bytes32", "string", "string"],
-            [data_hash, "|", milestone]
-        )
 
     # ==========================================================================
     # 8. 聚合签名并提交任务验证 

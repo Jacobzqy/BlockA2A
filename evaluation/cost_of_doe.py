@@ -1,22 +1,12 @@
 import sys
 import os
-import hashlib
 import json
-from datetime import datetime, timedelta, timezone
-from typing import List, Optional
 import time
-import base58
-from zoneinfo import ZoneInfo
-from eth_abi.packed import encode_packed
-from py_ecc.bls import G2ProofOfPossession as BLS  # 假设使用 py_ecc 作为 BLS 库
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
 from src.blocka2a.clients.blocka2a_client import BlockA2AClient
-from src.blocka2a.clients.task_initiator import TaskInitiator
-from src.blocka2a.clients.signature_aggregator import SignatureAggregator
-from src.blocka2a.utils import crypto, bn256
-from src.blocka2a.types import PublicKeyEntry, ServiceEntry, Capabilities, PolicyConstraints, Proof
-from src.blocka2a.clients.service_server import ServiceServer
+from src.blocka2a.utils import crypto
+from src.blocka2a.types import PublicKeyEntry, ServiceEntry, Capabilities, PolicyConstraints
 def measure_execution_time(func, *args, **kwargs):
     """测量函数执行时间"""
     start_time = time.time()
@@ -30,10 +20,10 @@ def main():
     rpc_endpoint = "http://127.0.0.1:8545/"
 
     # 本地部署的 AgentGovernanceContract (AGC) 地址
-    agc_address = "0x1613beB3B2C4f22Ee086B2b38C1476A3cE7f78E8"
-    acc_address = "0x95401dc811bb5740090279Ba06cfA8fcF6113778"
-    ilc_address = "0xf5059a5D33d5853360D16C683c16e67980206f36"
-    dac_address = "0x851356ae760d987E095750cCeb3bC6014560891C"
+    agc_address = "0x9fE46736679d2D9a65F0992F2272dE9f3c7fa6e0"
+    dac_address = "0xCf7Ed3AccA5a467e9e704C703E8D87F634fB0Fc9"
+    ilc_address = "0xDc64a140Aa3E981100a9becA4E685f962f0cF6C9"
+    acc_address = "0x5FC8d32690cc91D4c39d9d3abcBD16989F875707"
 
     # Hardhat 节点提供的第一个测试账户的私钥
     private_key = "0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80"
