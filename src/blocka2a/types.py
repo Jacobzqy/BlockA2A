@@ -9,9 +9,17 @@ from __future__ import annotations
 
 import json
 from datetime import datetime
-from typing import List, Dict
+from typing import List, Dict, NewType
 from pydantic import BaseModel
 from eth_typing import BLSPubkey, BLSPrivateKey, BLSSignature
+from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey, Ed25519PublicKey
+
+# Define Ed25519Signature as a new type based on bytes with validation
+class Ed25519Signature(bytes):
+    def __new__(cls, data: bytes):
+        if len(data) != 64:
+            raise ValueError(f"Ed25519 signature must be 64 bytes, got {len(data)}")
+        return super().__new__(cls, data)
 
 
 class PublicKeyEntry(BaseModel):

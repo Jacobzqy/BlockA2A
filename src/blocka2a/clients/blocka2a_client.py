@@ -18,7 +18,7 @@ from py_ecc.bls import G2ProofOfPossession
 from src.blocka2a.clients.base_client import BaseClient
 from src.blocka2a.clients.errors import InvalidParameterError, IdentityError, ContractError, NetworkError, LedgerError
 from src.blocka2a.types import PublicKeyEntry, ServiceEntry, Capabilities, PolicyConstraints, Proof, DIDDocument, \
-    BLSPubkey, BLSSignature, BLSPrivateKey, AccessToken
+    BLSPubkey, BLSSignature, BLSPrivateKey, Ed25519PrivateKey, Ed25519Signature, Ed25519PublicKey, AccessToken
 from src.blocka2a.contracts import access_control_contract, interaction_logic_contract, agent_governance_contract, data_anchoring_contract
 
 
@@ -438,47 +438,69 @@ class BlockA2AClient(BaseClient):
         else:
             raise InvalidParameterError(f"Unsupported proof type for verification: '{proof.type}'")
 
+
     @classmethod
-    def sign_task(cls, bls_sk: BLSPrivateKey, task_hash: bytes, milestone: str) -> BLSSignature:
+    def sign_task(cls, private_key: Union[Ed25519PrivateKey, BLSPrivateKey],
+                task_hash: bytes, milestone: str,
+                proof_type: str = "BLS256Signature2020") -> Union[Ed25519Signature, BLSSignature]:
         """
-        Sign a task identification (hash + milestone) with a BLS private key.
+        Sign a task identifier (hash + milestone) using the specified private key type.
 
         Args:
-            bls_sk: BLS private key integer.
-            task_hash: 32-byte SHA-256 hash of task metadata.
-            milestone: A string identifier of the milestone.
+            private_key: Ed25519 or BLS private key object
+            task_hash: 32-byte SHA-256 hash of task metadata
+            milestone: String identifier for the milestone
+            proof_type: Signature type, supports "Ed25519Signature2020" or "BLS256Signature2020"
 
         Returns:
-            A BLSSignature for the message.
-        """
-        if not isinstance(bls_sk, int):
-            raise InvalidParameterError("bls_sk must be BLSPrivateKey (int)")
+            Corresponding signature object based on the proof type
 
-        start = time.time()  # EVALUATION: signature generation
+        Raises:
+            InvalidParameterError: If private key type mismatches proof type or parameters are invalid
+            RuntimeError: If signature generation fails
+        """
+        if len(task_hash) != 32:
+            raise InvalidParameterError("task_hash must be 32 bytes")
+            
+        # Construct the message to sign: task hash concatenated with milestone
         key = str(task_hash) + "|" + milestone
         msg = key.encode('utf-8')
+        
+        start = time.time()
+        
+        # try:
+        if proof_type == "Ed25519Signature2020":
 
-        try:
-            # 从整数私钥创建 bn256.SecretKey 对象
-            secret_key = bn256.SecretKey(bls_sk)
+            if not isinstance(private_key, Ed25519PrivateKey):
+                raise InvalidParameterError("private_key must be BLSPrivateKey (int)")
+                
+            # Sign using Ed25519 private key
+            sig_bytes = private_key.sign(msg)
+            signature = Ed25519Signature(sig_bytes)
+            
+        elif proof_type == "BLS256Signature2020":
 
-            # 使用 bn256 库对消息进行签名
+            if not isinstance(private_key, int):
+                raise InvalidParameterError("private_key must be BLSPrivateKey (int)")
+                
+            # Create bn256 secret key from integer private key
+            secret_key = bn256.SecretKey(private_key)
+            
+            # Sign the message using BLS
             sig_point: bn256.Signature = bn256.sign(msg, secret_key, domain=b"DAC")
-
-            # 签名结果是一个 PointG1 元组 (FQ, FQ)，需要将其序列化为字节流。
-            # 采用未压缩格式：32字节x坐标 || 32字节y坐标
+            
+            # Serialize the signature point to bytes
             x_bytes = sig_point[0].n.to_bytes(32, "big")
             y_bytes = sig_point[1].n.to_bytes(32, "big")
-
-            sig = BLSSignature(x_bytes + y_bytes)
-
-        except Exception as e:
-            # 捕获签名过程中可能出现的任何错误
-            raise RuntimeError(f"生成 BN256 签名失败: {e}") from e
-
+            
+            signature = BLSSignature(x_bytes + y_bytes)
+            
+        else:
+            raise InvalidParameterError(f"Unsupported proof type: {proof_type}")
+            
         end = time.time()
-        print(f"signature generation {(end - start):.6f} s")
-        return sig
+        print(f"Signature generation time: {(end - start):.6f} s")
+        return signature
 
     def request_resource(self, did: str, resource_identifier: str, action_identifier: str) -> AccessToken:
         """

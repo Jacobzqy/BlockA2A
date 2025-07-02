@@ -21,6 +21,9 @@ from src.blocka2a.clients.errors import (
 from src.blocka2a.types import AccessToken
 import src.blocka2a.utils.bn256 as bn256
 
+from src.blocka2a.types import PublicKeyEntry, ServiceEntry, Capabilities, PolicyConstraints, Proof, DIDDocument, \
+    BLSPubkey, BLSSignature, BLSPrivateKey, Ed25519PrivateKey, Ed25519Signature, Ed25519PublicKey, AccessToken
+
 # ------------------------------------------------------------------
 # 自动补丁：把 json.dumps(sorted_keys) → sort_keys
 @pytest.fixture(autouse=True)
@@ -143,6 +146,58 @@ def test_sign_task_success(monkeypatch):
     with _bytes_patch():
         sig = BlockA2AClient.sign_task(1,b"\0"*32,"m1")
     assert sig == (1).to_bytes(32,"big")+(2).to_bytes(32,"big")
+
+def test_sign_task_bls_success(monkeypatch):
+    """Test successful BLS signature generation."""
+    class DummyPoint:
+        def __init__(self, v):
+            self.n = v
+
+    # Mock BLS signing functions
+    monkeypatch.setattr(bn256, "SecretKey", lambda sk: sk)
+    monkeypatch.setattr(bn256, "sign", lambda msg, sk, domain: (DummyPoint(1), DummyPoint(2)))
+
+    sig = BlockA2AClient.sign_task(
+        private_key=1,  # Mock BLS private key
+        task_hash=b"\0"*32,
+        milestone="m1",
+        proof_type="BLS256Signature2020"
+    )
+
+    expected_sig = (1).to_bytes(32, "big") + (2).to_bytes(32, "big")
+    assert sig == expected_sig
+
+def test_sign_task_ed25519_success(monkeypatch):
+    """Test successful Ed25519 signature generation."""
+    private_bytes = b"\x00" * 32 
+    priv = Ed25519PrivateKey.from_private_bytes(private_bytes)
+
+    sig = BlockA2AClient.sign_task(
+        private_key=priv,
+        task_hash=b"\x01" * 32,
+        milestone="test_milestone",
+        proof_type="Ed25519Signature2020"
+    )
+
+    assert isinstance(sig, bytes)
+    assert len(sig) == 64
+
+    # Verify the signature using the corresponding public key
+    public_key = priv.public_key()
+    key = str(b"\x01" * 32) + "|" + "test_milestone"
+    msg = key.encode('utf-8')
+    
+    public_key.verify(sig, msg)
+
+def test_sign_task_unsupported_proof_type():
+    """Test error handling for unsupported proof types."""
+    with pytest.raises(InvalidParameterError):
+        BlockA2AClient.sign_task(
+            private_key=1,
+            task_hash=b"\0"*32,
+            milestone="m3",
+            proof_type="InvalidProofType"
+        )
 
 # ------------------- request_resource ------------------------------
 @pytest.fixture

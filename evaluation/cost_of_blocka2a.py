@@ -15,6 +15,9 @@ from src.blocka2a.utils import crypto, bn256
 from src.blocka2a.types import PublicKeyEntry, ServiceEntry, Capabilities, PolicyConstraints, Proof
 from src.blocka2a.clients.service_server import ServiceServer
 
+from src.blocka2a.types import PublicKeyEntry, ServiceEntry, Capabilities, PolicyConstraints, Proof, DIDDocument, \
+    BLSPubkey, BLSSignature, BLSPrivateKey, Ed25519PrivateKey, Ed25519Signature, Ed25519PublicKey, AccessToken
+
 def create_payload(data_hash: bytes, milestone: str) -> bytes:
     """
     构造与合约 abi.encodePacked 完全一致的字节串。
@@ -197,6 +200,8 @@ def main():
 
         bls_private_key1 = bls_key_info1["private_key_int"]
         bls_private_key2 = bls_key_info2["private_key_int"]
+        ed_private_key1 = Ed25519PrivateKey.from_private_bytes(bytes.fromhex(ed_key_info1["private_key_hex"]))
+        ed_private_key2 = Ed25519PrivateKey.from_private_bytes(bytes.fromhex(ed_key_info2["private_key_hex"]))
         # print(f"DEBUG: bls_private_key1 type: {type(bls_private_key1)}")
         # print(f"DEBUG: bls_private_key2 type: {type(bls_private_key2)}")
 
@@ -210,14 +215,16 @@ def main():
             raise TypeError(f"BLS private key 2 must be int, got {type(bls_private_key2)}")
 
         signature1 = BlockA2AClient.sign_task(
-            bls_sk=bls_private_key1,
+            private_key=ed_private_key1,
             task_hash=task_hash,
-            milestone=milestone
+            milestone=milestone,
+            proof_type="Ed25519Signature2020"
         )
         signature2 = BlockA2AClient.sign_task(
-            bls_sk=bls_private_key2,
+            private_key=ed_private_key2,
             task_hash=task_hash,
-            milestone=milestone
+            milestone=milestone,
+            proof_type="Ed25519Signature2020"
         )
         print(f"✅ 任务签名生成成功: signature1={signature1.hex()[:20]}...")
         print(f"✅ 任务签名生成成功: signature2={signature2.hex()[:20]}...")
@@ -227,11 +234,17 @@ def main():
     
     start = time.time()
     message = task_hash.hex() + "|" + milestone  # 必须与签名时相同
+    # proof = Proof(
+    #     type="BLS256Signature2020",
+    #     created=datetime.now(timezone.utc).isoformat(),  # ISO 8601格式
+    #     verificationMethod=did1 + "#keys-2",  # 必须是DID文档中存在的公钥ID
+    #     proofValue=base58.b58encode(signature1)
+    # )
     proof = Proof(
-        type="BLS256Signature2020",
+        type="Ed25519Signature2020",
         created=datetime.now(timezone.utc).isoformat(),  # ISO 8601格式
-        verificationMethod=did1 + "#keys-2",  # 必须是DID文档中存在的公钥ID
-        proofValue=base58.b58encode(signature1)
+        verificationMethod=did1 + "#keys-1",  # 必须是DID文档中存在的公钥ID
+        proofValue=signature1.hex()
     )
     is_valid = client.verify(did1, proof=proof, message=message.encode('utf-8'))
     end = time.time()

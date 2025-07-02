@@ -245,12 +245,14 @@ The agent uses its BLS private key to sign a task milestone. The resulting signa
 agent_bls_sk = 123456789...
 task_hash = b'...' # 32-byte hash of the task metadata
 milestone = "milestone-1-complete"
+proof_type = "BLS256Signature2020"
 
 # Agent signs the task milestone
 individual_sig = BlockA2AClient.sign_task(
-    bls_sk=agent_bls_sk,
+    private_key=agent_bls_sk,
     task_hash=task_hash,
-    milestone=milestone
+    milestone=milestone,
+	proof_type="BLS256Signature2020"
 )
 ```
 
