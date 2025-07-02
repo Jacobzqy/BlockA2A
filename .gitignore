@@ -12,3 +12,4 @@ tests/__pycache__/
 tests/clients/__pycache__/
 tests/contracts/__pycache__/
 tests/utils/__pycache__/
+src/blocka2a/contracts/
