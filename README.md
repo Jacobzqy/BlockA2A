@@ -1,15 +1,12 @@
-<div style="text-align: center;">
+<div align="center">
   <a href="#">
-    <img src="docs/imgs/blocka2a_logo.png"
-         alt="BlockA2A Logo"
-         width="180"
-         style="display: block; margin: 0 auto 0.1em;">
+    <img src="docs/imgs/blocka2a_logo.png" alt="BlockA2A Logo" width="180">
   </a>
-
-  <h1 style="margin: 0.1em 0;">BlockA2A</h1>
-
+  
+  <h1>BlockA2A</h1>
+  
   <p>A Decentralized Agent-to-Agent Framework</p>
-
+  
   <a href="LICENSE"><img src="https://img.shields.io/badge/license-Apache--2.0-blue.svg"></a>
   <a href="#"><img src="https://img.shields.io/badge/version-v0.1.0-green.svg"></a>
 </div>
