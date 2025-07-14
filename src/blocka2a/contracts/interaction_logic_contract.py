@@ -1,0 +1,69 @@
+from web3 import Web3
+from web3.types import Address, ChecksumAddress, ENS
+from web3.contract import Contract
+from typing import Union
+
+ABI = [{'inputs': [{'internalType': 'uint256[4][5]',
+              'name': '_blsPks',
+              'type': 'uint256[4][5]'},
+             {'internalType': 'uint8', 'name': '_k', 'type': 'uint8'}],
+  'stateMutability': 'nonpayable',
+  'type': 'constructor'},
+ {'inputs': [{'internalType': 'uint256[4]',
+              'name': 'input',
+              'type': 'uint256[4]'}],
+  'name': 'BNAddFailed',
+  'type': 'error'},
+ {'inputs': [{'internalType': 'bytes', 'name': 'dst', 'type': 'bytes'}],
+  'name': 'InvalidDSTLength',
+  'type': 'error'},
+ {'inputs': [{'internalType': 'uint256', 'name': 'x', 'type': 'uint256'}],
+  'name': 'InvalidFieldElement',
+  'type': 'error'},
+ {'inputs': [{'internalType': 'uint256', 'name': 'noSqrt', 'type': 'uint256'}],
+  'name': 'MapToPointFailed',
+  'type': 'error'},
+ {'inputs': [{'internalType': 'uint256', 'name': 'base', 'type': 'uint256'},
+             {'internalType': 'uint256', 'name': 'exponent', 'type': 'uint256'},
+             {'internalType': 'uint256', 'name': 'modulus', 'type': 'uint256'}],
+  'name': 'ModExpFailed',
+  'type': 'error'},
+ {'anonymous': False,
+  'inputs': [{'indexed': True,
+              'internalType': 'enum InteractionLogicContract.State',
+              'name': 'from',
+              'type': 'uint8'},
+             {'indexed': True,
+              'internalType': 'enum InteractionLogicContract.WorkflowEvent',
+              'name': 'eventId',
+              'type': 'uint8'},
+             {'indexed': True,
+              'internalType': 'enum InteractionLogicContract.State',
+              'name': 'to',
+              'type': 'uint8'},
+             {'indexed': False,
+              'internalType': 'uint256',
+              'name': 'timestamp',
+              'type': 'uint256'}],
+  'name': 'TransitionExecuted',
+  'type': 'event'},
+ {'inputs': [{'internalType': 'enum InteractionLogicContract.WorkflowEvent',
+              'name': 'eventId',
+              'type': 'uint8'},
+             {'internalType': 'uint256[2]',
+              'name': 'aggSig',
+              'type': 'uint256[2]'},
+             {'internalType': 'uint8', 'name': 'pksMask', 'type': 'uint8'}],
+  'name': 'transition',
+  'outputs': [{'internalType': 'bool', 'name': '', 'type': 'bool'}],
+  'stateMutability': 'nonpayable',
+  'type': 'function'}]
+
+def get_contract(
+    w3: Web3,
+    address: Union[Address, ChecksumAddress, ENS],
+) -> Contract:
+    """
+    Returns a Web3.py Contract instance for `InteractionLogicContract`.
+    """
+    return w3.eth.contract(address=address, abi=ABI)
