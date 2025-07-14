@@ -1,17 +1,12 @@
 import pytest
-import os
-os.environ["SOLCX_CACHE_DIR"] = "/home/zlp/.solcx"
 import re
+import os
 import time
 from web3 import Web3, HTTPProvider
 from web3.exceptions import ContractLogicError
 from solcx import compile_files, install_solc
 from typing import List, Tuple
 from eth_abi.packed import encode_packed
-
-import solcx
-# solcx.set_solc_cache_dir("/home/zlp/.solcx")  # 用你有权限的目录
-solcx.install_solc("0.8.23")
 
 
 # pytest.skip(allow_module_level=True, reason="Skipping all tests in this file for now")
@@ -143,8 +138,11 @@ def test_full_lifecycle_final_attempt(acc_contract, w3_and_accounts):
     # 准备签名
     policy_key = w3.keccak(encode_packed(['string', 'string', 'string'], [resource_id, "|", action_id]))
     # entry_before_add = acc_contract.functions._policies(policy_key).call()
-    entry_before_add = acc_contract.functions.getPolicy(resource_id, action_id).call()
-    nonce_before_add = entry_before_add[1]
+    # entry_before_add = acc_contract.functions.getPolicy(resource_id, action_id).call()
+    # print("DEBUG: getPolicy return:", entry_before_add)
+
+    # nonce_before_add = entry_before_add[1]
+    nonce_before_add = acc_contract.functions.getPolicyNonce(resource_id, action_id).call()
 
     payload_for_add = encode_packed(
         ['string', 'string', 'string', 'bytes32', 'uint256'],

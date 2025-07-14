@@ -69,6 +69,15 @@ contract AccessControlContract is IACC {
 
     string public systemThreatLevel = "low";
 
+    function getPolicyNonce(
+        string calldata resourceIdentifier,
+        string calldata actionIdentifier
+    ) external view returns (uint256) {
+        bytes32 key = _policyKey(resourceIdentifier, actionIdentifier);
+        require(_policies[key].exists, "ACC: policy not found");
+        return _policies[key].nonce;
+    }
+
     function _aggregate(uint8 mask)
         internal
         view
