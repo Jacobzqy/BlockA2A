@@ -47,38 +47,6 @@ class ServiceServer(BaseClient):
             ]
         )
 
-    # def verify_token(self, token: AccessToken) -> bool:
-    #     if token['resourceIdentifier'] != self._resource_identifier:
-    #         return False
-
-    #     if token['actionIdentifier'] not in self._registered_actions:
-    #         return False
-
-    #     token_hash = self.get_token_hash(token)
-
-    #     try:
-    #         is_valid = self._acct.functions.verifyTokenHash(token_hash).call()
-    #         return is_valid
-    #     except Exception as e:
-    #         raise ContractError(f"verifyTokenHash contract call failed: {e}") from e
-
-    # 修改 ServiceServer 类中的 verify_token 方法
-    # def verify_token(self, token: AccessToken) -> bool:
-    #     # 使用点语法访问属性而不是字典语法
-    #     if token.resourceIdentifier != self._resource_identifier:
-    #         return False
-
-    #     if token.actionIdentifier not in self._registered_actions:
-    #         return False
-
-    #     token_hash = self.get_token_hash(token)
-
-    #     try:
-    #         is_valid = self._acc.functions.verifyTokenHash(token_hash).call()
-    #         return is_valid
-    #     except Exception as e:
-    #         raise ContractError(f"verifyTokenHash contract call failed: {e}") from e
-
     def verify_token(self, token: AccessToken) -> bool:
         try:
             # 统一访问方式：支持 dict 或有属性的对象（如 Pydantic 模型）
