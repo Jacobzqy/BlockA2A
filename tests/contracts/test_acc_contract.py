@@ -8,7 +8,7 @@ from solcx import compile_files, install_solc
 from typing import List, Tuple
 from eth_abi.packed import encode_packed
 
-pytest.skip(allow_module_level=True, reason="Skipping all tests in this file for now")
+# pytest.skip(allow_module_level=True, reason="Skipping all tests in this file for now")
 # --------------------------------------------------------------------
 # 1. 导入和配置 (无变化)
 # --------------------------------------------------------------------

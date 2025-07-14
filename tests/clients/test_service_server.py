@@ -112,11 +112,11 @@ def test_verify_token_success_and_failure(monkeypatch):
     # stub get_token_hash
     monkeypatch.setattr(ServiceServer, "get_token_hash", lambda cls, t: b"h")
     # stub _acct.functions
-    srv._acct = FakeACC(verify_ret=True)
+    srv._acc = FakeACC(verify_ret=True)
     token = {'resourceIdentifier': 'res', 'actionIdentifier': 'act'}
     assert srv.verify_token(token) is True
     # simulate contract error
-    srv._acct = FakeACC(verify_exc=Exception("fail"))
+    srv._acc = FakeACC(verify_exc=Exception("fail"))
     with pytest.raises(ContractError) as exc:
         srv.verify_token(token)
     assert "verifyTokenHash contract call failed" in str(exc.value)
