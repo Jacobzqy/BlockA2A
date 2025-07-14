@@ -1,5 +1,6 @@
 import pytest
 import os
+os.environ["SOLCX_CACHE_DIR"] = "/home/zlp/.solcx"
 import re
 import time
 from web3 import Web3, HTTPProvider
@@ -7,6 +8,11 @@ from web3.exceptions import ContractLogicError
 from solcx import compile_files, install_solc
 from typing import List, Tuple
 from eth_abi.packed import encode_packed
+
+import solcx
+# solcx.set_solc_cache_dir("/home/zlp/.solcx")  # 用你有权限的目录
+solcx.install_solc("0.8.23")
+
 
 # pytest.skip(allow_module_level=True, reason="Skipping all tests in this file for now")
 # --------------------------------------------------------------------
