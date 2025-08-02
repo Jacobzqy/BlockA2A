@@ -118,11 +118,11 @@ def test_ed25519_sign_verify_end_to_end():
     )
 
     # 4. 验证 (肯定性测试)
-    is_valid = crypto.verify(proof, message, pub_key_hex)
+    is_valid = crypto.verify_in_json(proof, message, pub_key_hex)
     assert is_valid is True, "有效的签名未能通过验证"
 
     # 5. 验证 (否定性测试)
-    is_invalid = crypto.verify(proof, "a different message", pub_key_hex)
+    is_invalid = crypto.verify_in_json(proof, "a different message", pub_key_hex)
     assert is_invalid is False, "使用错误消息的验证应失败"
 
 # --- 新增的测试用例 ---

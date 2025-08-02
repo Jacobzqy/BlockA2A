@@ -10,7 +10,8 @@ sys.modules["Crypto.SelfTest.Protocol.test_ecdh"] = fake_ecdh
 import pytest
 import time
 import hashlib
-
+import json
+from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey
 import src.blocka2a.clients.blocka2a_client as client_mod
 from src.blocka2a.clients.blocka2a_client import BlockA2AClient
 from src.blocka2a.clients.base_client import BaseClient
@@ -168,26 +169,40 @@ def test_sign_task_bls_success(monkeypatch):
     assert sig == expected_sig
 
 def test_sign_task_ed25519_success(monkeypatch):
-    """Test successful Ed25519 signature generation."""
-    private_bytes = b"\x00" * 32 
+    """Test successful Ed25519 signature generation with correct message hashing and formatting."""
+
+    # 模拟任务元数据并计算 task_hash
+    task_metadata = {"task_id": "task-123", "description": "Sample task"}
+    task_json = json.dumps(task_metadata, separators=(",", ":"), sort_keys=True)
+    task_hash = hashlib.sha256(task_json.encode()).digest()
+    milestone = "milestone-1"
+
+    # 使用固定私钥 bytes（示例用 0x00 * 32）
+    private_bytes = b"\x00" * 32
     priv = Ed25519PrivateKey.from_private_bytes(private_bytes)
 
+    # 签名
     sig = BlockA2AClient.sign_task(
         private_key=priv,
-        task_hash=b"\x01" * 32,
-        milestone="test_milestone",
+        task_hash=task_hash,
+        milestone=milestone,
         proof_type="Ed25519Signature2020"
     )
 
+    # 断言签名格式
     assert isinstance(sig, bytes)
     assert len(sig) == 64
 
-    # Verify the signature using the corresponding public key
+    # 验签
     public_key = priv.public_key()
-    key = str(b"\x01" * 32) + "|" + "test_milestone"
-    msg = key.encode('utf-8')
-    
-    public_key.verify(sig, msg)
+
+    # 注意！message 拼接必须与 sign_task 内部一致
+    message = task_hash.hex() + "|" + milestone
+    msg_bytes = message.encode('utf-8')
+
+    # 验证签名
+    public_key.verify(sig, msg_bytes)
+
 
 def test_sign_task_unsupported_proof_type():
     """Test error handling for unsupported proof types."""
