@@ -393,8 +393,6 @@ class BlockA2AClient(BaseClient):
                 # print(f"DEBUG: verify ha: {ha.hex()}")
                 # print(f"DEBUG: verify calc_ha: {calc_ha.hex()}")
                 raise IdentityError("Integrity check failed: hash mismatch")
-        except IdentityError:
-            raise
         except Exception as e:
             raise IdentityError(f"Integrity check error: {e}") from e
 
@@ -405,6 +403,7 @@ class BlockA2AClient(BaseClient):
             raise IdentityError(f"Failed to parse DIDDocument: {e}") from e
 
         public_keys = document.publicKey
+        # print(f"public keys: {public_keys}")
         signer_public_key_entry = next((key for key in public_keys if key.id == proof.verificationMethod), None)
 
         if not signer_public_key_entry:
@@ -463,7 +462,8 @@ class BlockA2AClient(BaseClient):
             raise InvalidParameterError("task_hash must be 32 bytes")
             
         # Construct the message to sign: task hash concatenated with milestone
-        key = str(task_hash) + "|" + milestone
+        # key = str(task_hash) + "|" + milestone
+        key = task_hash.hex() + "|" + milestone
         msg = key.encode('utf-8')
         
         start = time.time()

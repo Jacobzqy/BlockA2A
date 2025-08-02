@@ -271,48 +271,66 @@ def sign(
     )
 
 
-def verify(
-    proof: Proof,
-    message: Union[str, bytes],
-    public_key: Union[bytes, str]
-) -> bool:
-    """Verifies an Ed25519Signature2020 proof.
+# def verify(
+#     proof: Proof,
+#     message: Union[str, bytes],
+#     public_key: Union[bytes, str]
+# ) -> bool:
+#     """Verifies an Ed25519Signature2020 proof.
 
-    This function reconstructs the exact signed payload from the proof
-    metadata and original message, then verifies the signature against it.
+#     This function reconstructs the exact signed payload from the proof
+#     metadata and original message, then verifies the signature against it.
 
-    Args:
-        proof: The Proof object to verify.
-        message: The original message that was signed.
-        public_key: The 32-byte Ed25519 public key.
+#     Args:
+#         proof: The Proof object to verify.
+#         message: The original message that was signed.
+#         public_key: The 32-byte Ed25519 public key.
 
-    Returns:
-        True if the signature is valid, False otherwise.
+#     Returns:
+#         True if the signature is valid, False otherwise.
 
-    Raises:
-        ValueError: If the proof type is unsupported or the public key
-            is not 32 bytes.
-    """
+#     Raises:
+#         ValueError: If the proof type is unsupported or the public key
+#             is not 32 bytes.
+#     """
+#     if proof.type != "Ed25519Signature2020":
+#         raise ValueError(f"Unsupported proof type: {proof.type!r}")
+
+#     msg_str = message.decode("utf-8") if isinstance(message, (bytes, bytearray)) else message
+#     key_bytes = bytes.fromhex(public_key) if isinstance(public_key, str) else public_key
+#     if not (isinstance(key_bytes, (bytes, bytearray)) and len(key_bytes) == 32):
+#         raise ValueError("Ed25519 public key must be 32 bytes")
+
+#     payload = {
+#         "type": proof.type,
+#         "created": proof.created.isoformat(),
+#         "verification_method": proof.verificationMethod,
+#         "message": msg_str
+#     }
+#     serialized = json.dumps(payload, sort_keys=True, separators=(",", ":")).encode("utf-8")
+#     sig_bytes = bytes.fromhex(proof.proofValue)
+#     pub = Ed25519PublicKey.from_public_bytes(key_bytes)
+
+#     try:
+#         pub.verify(sig_bytes, serialized)
+#         return True
+#     except InvalidSignature:
+#         return False
+
+def verify(proof: Proof, message: Union[str, bytes], public_key: Union[bytes, str]) -> bool:
     if proof.type != "Ed25519Signature2020":
         raise ValueError(f"Unsupported proof type: {proof.type!r}")
 
-    msg_str = message.decode("utf-8") if isinstance(message, (bytes, bytearray)) else message
+    msg_bytes = message.encode("utf-8") if isinstance(message, str) else message
     key_bytes = bytes.fromhex(public_key) if isinstance(public_key, str) else public_key
     if not (isinstance(key_bytes, (bytes, bytearray)) and len(key_bytes) == 32):
         raise ValueError("Ed25519 public key must be 32 bytes")
 
-    payload = {
-        "type": proof.type,
-        "created": proof.created.isoformat(),
-        "verification_method": proof.verificationMethod,
-        "message": msg_str
-    }
-    serialized = json.dumps(payload, sort_keys=True, separators=(",", ":")).encode("utf-8")
     sig_bytes = bytes.fromhex(proof.proofValue)
     pub = Ed25519PublicKey.from_public_bytes(key_bytes)
 
     try:
-        pub.verify(sig_bytes, serialized)
+        pub.verify(sig_bytes, msg_bytes)  # 直接验证原始message
         return True
     except InvalidSignature:
         return False
