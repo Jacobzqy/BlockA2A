@@ -408,3 +408,19 @@ coords = crypto.bn256_g2_pubkey_to_coords(pk_hex)
 
 print(f"G2 Public Key Coordinates for Solidity: {coords}")
 ```
+
+## ✍️ Citation
+
+Please cite our paper if the codebase/documentation/examples in this repo are helpful to you!
+
+```
+@misc{zou2025blocka2asecureverifiableagenttoagent,
+      title={BlockA2A: Towards Secure and Verifiable Agent-to-Agent Interoperability}, 
+      author={Zhenhua Zou and Zhuotao Liu and Lepeng Zhao and Qiuyang Zhan},
+      year={2025},
+      eprint={2508.01332},
+      archivePrefix={arXiv},
+      primaryClass={cs.CR},
+      url={https://arxiv.org/abs/2508.01332}, 
+}
+```
